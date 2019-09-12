@@ -1,0 +1,23 @@
+{
+  "extends": [
+    "eslint:recommended",
+    "plugin:node/recommended",
+    "plugin:import/errors"
+  ],
+  "parserOptions": {
+    "ecmaVersion": 2019
+  },
+  "rules": {
+    "no-console":"off",
+    "no-new-func": "off",
+    "indent": [ "warn", 4 ],
+    "quotes": [ "warn", "single"],
+    "semi": ["error", "always"],
+    "spaced-comment": ["warn", "always"],
+    "prefer-template":"warn",
+    "space-before-blocks": "warn",
+    "space-infix-ops": "warn",
+    "no-irregular-whitespace": ["error", { "skipStrings": true, "skipRegExps": true, "skipTemplates": true }],
+    "no-var": "error"
+  }
+}
