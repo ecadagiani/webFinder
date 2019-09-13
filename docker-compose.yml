@@ -4,3 +4,9 @@ services:
     build: .
     cap_add:
       - SYS_ADMIN
+    volumes:
+      - .:/app
+      - web_finder_node_volumes:/app/node_modules
+
+volumes:
+  web_finder_node_volumes:

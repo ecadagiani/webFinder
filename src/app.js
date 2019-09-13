@@ -12,7 +12,7 @@ const puppeteer = require('puppeteer');
         };
     });
 
-    console.log(result);
+    console.log("result", result);
 
     browser.close();
 })();
