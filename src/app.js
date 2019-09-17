@@ -1,18 +1,22 @@
 const puppeteer = require('puppeteer');
+const {get} = require('lodash');
+global.Promise = require('bluebird');
+
+const {fetchPage} = require('./lib/fetchPage');
+
+const config = require('./config');
+
 
 (async () => {
     const browser = await puppeteer.launch();
     const page = await browser.newPage();
-    await page.goto('http://www.meteocentrale.ch/it/europa/svizzera/meteo-corvatsch/details/S067910/');
 
-    const result = await page.evaluate(() => {
-        let temperature = document.querySelector('.column-4').innerText;
-        return {
-            temperature
-        };
-    });
+    if(get(config, 'start.link')) {
+        await page.goto(config.start.link);
+    }
 
-    console.log("result", result);
+    const pageData = await fetchPage(page);
+    console.log(pageData);
 
     browser.close();
 })();

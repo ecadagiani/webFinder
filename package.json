@@ -10,6 +10,8 @@
   "author": "Eden Cadagiani <e.cadagiani@gmail.com>",
   "license": "MIT",
   "dependencies": {
+    "bluebird": "^3.5.5",
+    "lodash": "^4.17.15",
     "puppeteer": "^1.19.0"
   },
   "devDependencies": {

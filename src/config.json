@@ -1,1 +1,9 @@
-
+{
+    "start": {
+        "link": "https://www.w3schools.com/cssref/css_selectors.asp"
+    },
+    "searchSelectors": [
+        "script[src*='zdassets']",
+        "script[src*='web-assets.zendesk']"
+    ]
+}
