@@ -1,9 +1,16 @@
 {
     "start": {
-        "link": "https://www.w3schools.com/cssref/css_selectors.asp"
+        "link": "https://hellomybot.io"
     },
     "searchSelectors": [
         "script[src*='zdassets']",
         "script[src*='web-assets.zendesk']"
+    ],
+    "whitelist": [
+        "facebook",
+        "twitter",
+        "wikipedia",
+        "youtube",
+        "instagram"
     ]
 }

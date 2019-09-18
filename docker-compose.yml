@@ -1,5 +1,20 @@
 version: "3.2"
 services:
+  web_finder_mongo:
+    image: mongo
+    restart: always
+    volumes:
+      - web_finder_mongo_volumes:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: web_finder
+    networks:
+      default:
+      web_finder_internal:
+        aliases:
+          - web_finder_mongo
+
   web_finder:
     build: .
     cap_add:
@@ -7,6 +22,22 @@ services:
     volumes:
       - .:/app
       - web_finder_node_volumes:/app/node_modules
+    environment:
+      MONGO_HOST: web_finder_mongo
+      MONGO_PORT: 27017
+      MONGO_USERNAME: root
+      MONGO_PASSWORD: password
+      MONGO_DATABASE: web_finder
+    networks:
+      default:
+      web_finder_internal:
+        aliases:
+          - web_finder
 
 volumes:
+  web_finder_mongo_volumes:
   web_finder_node_volumes:
+
+networks:
+  default:
+  web_finder_internal:
