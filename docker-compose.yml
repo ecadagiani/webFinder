@@ -1,14 +1,17 @@
 version: "3.2"
 services:
   web_finder_mongo:
-    image: mongo
+    image: mongo:latest
     restart: always
     volumes:
+      - ./mongo:/docker-entrypoint-initdb.d:ro
       - web_finder_mongo_volumes:/data/db
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: password
-      MONGO_INITDB_DATABASE: web_finder
+      MONGO_INITDB_DATABASE: webfinder
+    ports:
+      - 27018:27017
     networks:
       default:
       web_finder_internal:
@@ -25,9 +28,9 @@ services:
     environment:
       MONGO_HOST: web_finder_mongo
       MONGO_PORT: 27017
-      MONGO_USERNAME: root
+      MONGO_USERNAME: crawler
       MONGO_PASSWORD: password
-      MONGO_DATABASE: web_finder
+      MONGO_DATABASE: webfinder
     networks:
       default:
       web_finder_internal:

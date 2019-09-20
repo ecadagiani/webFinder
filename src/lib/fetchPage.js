@@ -1,6 +1,4 @@
-const config = require('../config');
-
-async function fetchLinks(page) {
+async function fetchLinks(page, whitelist) {
     const links = await page.$$eval('a', anchors => {
 
         function isHidden(el) {
@@ -15,15 +13,15 @@ async function fetchLinks(page) {
     });
 
     return links.filter(href =>
-        config.whitelist.every(pattern => {
+        whitelist.every(pattern => {
             const reg = new RegExp(pattern);
             return !reg.test(href);
         })
     );
 }
 
-async function checkSearchSelectors(page) {
-    const result = await Promise.map(config.searchSelectors, async (searchSelector) => {
+async function checkSearchSelectors(page, searchSelectors) {
+    const result = await Promise.map(searchSelectors, async (searchSelector) => {
         return await page.$$eval(searchSelector, el => {
             return Array.isArray(el) && el.length > 0;
         });
@@ -36,11 +34,11 @@ async function getPageLanguage(page) {
 }
 
 
-async function fetchPage(page) {
+async function fetchPage(page, {whitelist, searchSelectors}) {
 
     return {
-        match: await checkSearchSelectors(page),
-        links: await fetchLinks(page),
+        match: await checkSearchSelectors(page, searchSelectors),
+        links: await fetchLinks(page, whitelist),
         language: await getPageLanguage(page),
     };
 }
