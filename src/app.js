@@ -1,6 +1,6 @@
 global.Promise = require('bluebird');
 
-const Crawler = require('./crawler');
+const Crawler = require('./Crawler');
 const config = require('../config');
 
 (async () => {

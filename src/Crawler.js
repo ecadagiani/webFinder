@@ -4,15 +4,15 @@ const mongoose = require('mongoose');
 
 const {fetchPage} = require('./lib/fetchPage');
 
-class Crawler2 {
+class Crawler {
     static async initBrowser () {
-        if(!Crawler2.__browser)
-            Crawler2.__browser = await puppeteer.launch();
+        if(!Crawler.__browser)
+            Crawler.__browser = await puppeteer.launch();
     }
     get browser() {
-        if(!Crawler2.__browser)
+        if(!Crawler.__browser)
             throw new Error('Browser not initialised');
-        return Crawler2.__browser;
+        return Crawler.__browser;
     }
 
     constructor(config) {
@@ -21,7 +21,7 @@ class Crawler2 {
     }
 
     async init() {
-        await Crawler2.initBrowser();
+        await Crawler.initBrowser();
         this.page = await this.browser.newPage();
         this._mongoConnection();
     }
@@ -53,6 +53,6 @@ class Crawler2 {
     }
 }
 
-Crawler2.prototype.__browser = null;
+Crawler.prototype.__browser = null;
 
-module.exports = Crawler2;
+module.exports = Crawler;
