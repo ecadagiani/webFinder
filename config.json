@@ -12,5 +12,12 @@
         "wikipedia",
         "youtube",
         "instagram"
-    ]
+    ],
+    "mongo": {
+        "host": "web_finder_mongo",
+        "port": "27017",
+        "database": "webfinder",
+        "username": "crawler",
+        "password": "password"
+    }
 }

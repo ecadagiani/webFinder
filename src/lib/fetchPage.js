@@ -30,7 +30,9 @@ async function checkSearchSelectors(page, searchSelectors) {
 }
 
 async function getPageLanguage(page) {
-    return null;
+    return await page.evaluate(() => {
+        return document.documentElement.lang;
+    });
 }
 
 

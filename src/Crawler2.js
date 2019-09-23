@@ -4,18 +4,29 @@ const mongoose = require('mongoose');
 
 const {fetchPage} = require('./lib/fetchPage');
 
-class Crawler {
+class Crawler2 {
+    static async initBrowser () {
+        if(!Crawler2.__browser)
+            Crawler2.__browser = await puppeteer.launch();
+    }
+    get browser() {
+        if(!Crawler2.__browser)
+            throw new Error('Browser not initialised');
+        return Crawler2.__browser;
+    }
+
     constructor(config) {
         this.config = config;
-        this.browser = null;
         this.page = null;
     }
 
-    async start() {
-        this._mongoConnection();
-
-        this.browser = await puppeteer.launch();
+    async init() {
+        await Crawler2.initBrowser();
         this.page = await this.browser.newPage();
+        this._mongoConnection();
+    }
+
+    async start() {
 
         if(get(this.config, 'start.link')) {
             await this.page.goto(this.config.start.link);
@@ -31,16 +42,17 @@ class Crawler {
 
     _mongoConnection() {
         const db = mongoose.connection;
-        db.on('error', err => console.error("db error", err));
+        db.on('error', err => console.error('db error', err));
         db.once('open', function() {
-            console.log("db success");
+            console.log('db success');
         });
 
         const {host, port, database, username, password} = this.config.mongo;
         const mongoUri = `mongodb://${username}:${password}@${host}:${port}/${database}`;
         mongoose.connect(mongoUri, {useNewUrlParser: true});
     }
-
 }
 
-module.exports = Crawler;
+Crawler2.prototype.__browser = null;
+
+module.exports = Crawler2;
