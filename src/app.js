@@ -7,5 +7,7 @@ const config = require('../config');
     const crawler = new Crawler(config);
     await crawler.init();
     await crawler.start();
-    crawler.stop();
+    await crawler.stop();
+
+    await Crawler.closeBrowser();
 })();

@@ -35,17 +35,8 @@ async function getPageLanguage(page) {
     });
 }
 
-
-async function fetchPage(page, {whitelist, searchSelectors}) {
-
-    return {
-        match: await checkSearchSelectors(page, searchSelectors),
-        links: await fetchLinks(page, whitelist),
-        language: await getPageLanguage(page),
-    };
-}
-
 module.exports = {
     fetchLinks,
-    fetchPage
+    getPageLanguage,
+    checkSearchSelectors,
 };

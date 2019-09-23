@@ -11,7 +11,10 @@
         "twitter",
         "wikipedia",
         "youtube",
-        "instagram"
+        "instagram",
+        "stackoverflow",
+        "npmjs",
+        "github"
     ],
     "mongo": {
         "host": "web_finder_mongo",
