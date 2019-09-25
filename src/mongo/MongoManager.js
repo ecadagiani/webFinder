@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const CapsuleSchema = require('./PageSchema');
+const PageSchema = require('./PageSchema');
 const {getDomain} = require('../lib/tools');
 
 class MongoManager {
@@ -19,7 +19,7 @@ class MongoManager {
 
         const {host, port, database, username, password} = this.config;
         const mongoUri = `mongodb://${username}:${password}@${host}:${port}/${database}`;
-        mongoose.connect(mongoUri, {useNewUrlParser: true});
+        mongoose.connect(mongoUri, {useNewUrlParser: true, useCreateIndex: true});
     }
 
     __onError(err) {
@@ -29,19 +29,28 @@ class MongoManager {
         console.log('db success');
     }
 
-    async createOrUpdatePage({ url, domain = getDomain(url), fetch = null, fetchInterest = null, match = null, fetchDate = null, language = null }) {
-        //todo check page already exist for this url
-        const page = new CapsuleSchema();
+    async createOrUpdatePage({ url, domain = getDomain(url), fetchDate = null, fetched = null, fetching = null, fetchInterest = null, match = null, language = null }) {
+        let page = await PageSchema.findOne({url});
+        if(!page)
+            page = new PageSchema();
+
         page.url = url;
         page.domain = domain;
+        page.fetchDate = fetchDate;
 
-        if(fetch) page.fetch = fetch;
+        if(fetched) page.fetched = fetched;
+        if(fetching) page.fetching = fetching;
         if(fetchInterest) page.fetchInterest = fetchInterest;
         if(match) page.match = match;
-        if(fetchDate) page.fetchDate = fetchDate;
         if(language) page.language = language;
-
         await page.save();
+    }
+
+    async getBestPageToFetch() {
+        return await PageSchema
+            .find({fetched: false, fetching: false})
+            .sort({ fetchInterest: -1 })
+            .limit(1);
     }
 
 }

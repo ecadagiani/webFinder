@@ -1,7 +1,6 @@
 {
-    "start": {
-        "link": "https://hellomybot.io"
-    },
+    "nbCrawler": 1,
+    "start": "https://hellomybot.io/fr/bienvenue/",
     "searchSelectors": [
         "script[src*='zdassets']",
         "script[src*='web-assets.zendesk']"
@@ -14,7 +13,9 @@
         "instagram",
         "stackoverflow",
         "npmjs",
-        "github"
+        "github",
+        "libraryofbabel.info",
+        "theinfinitelibrary"
     ],
     "mongo": {
         "host": "web_finder_mongo",
@@ -22,5 +23,50 @@
         "database": "webfinder",
         "username": "crawler",
         "password": "password"
-    }
+    },
+    "interestLanguage": [
+        "fr",
+        "fr-FR"
+    ],
+    "interestTag": [
+        "bot",
+        "chatbot",
+        "sav",
+        "contact",
+        "faq",
+        "savoir",
+        "parle"
+    ],
+    "uninterestingTag": [
+        "admin",
+        "password",
+        "register",
+        "wishlist,",
+        "filter",
+        "limit",
+        "order",
+        "sort"
+    ],
+    "interestTagUrl": [],
+    "uninterestingTagUrl": [
+        "admin",
+        "cart",
+        "checkout",
+        "favorite",
+        "password",
+        "register",
+        "sendfriend",
+        "wishlist,",
+        "cgi-bin",
+        "includes",
+        "var,",
+        "filter",
+        "limit",
+        "order",
+        "sort,",
+        "sessionid",
+        "session_id",
+        "SID",
+        "PHPSESSID"
+    ]
 }
