@@ -5,18 +5,6 @@
         "script[src*='zdassets']",
         "script[src*='web-assets.zendesk']"
     ],
-    "whitelist": [
-        "facebook",
-        "twitter",
-        "wikipedia",
-        "youtube",
-        "instagram",
-        "stackoverflow",
-        "npmjs",
-        "github",
-        "libraryofbabel.info",
-        "theinfinitelibrary"
-    ],
     "mongo": {
         "host": "web_finder_mongo",
         "port": "27017",
@@ -24,10 +12,12 @@
         "username": "crawler",
         "password": "password"
     },
+    "crawlInvisibleLink": true,
     "interestLanguage": [
         "fr",
         "fr-FR"
     ],
+    "domainWhitelist": [],
     "interestTag": [
         "bot",
         "chatbot",
@@ -35,38 +25,10 @@
         "contact",
         "faq",
         "savoir",
-        "parle"
+        "parle",
+        "startup"
     ],
-    "uninterestingTag": [
-        "admin",
-        "password",
-        "register",
-        "wishlist,",
-        "filter",
-        "limit",
-        "order",
-        "sort"
-    ],
+    "uninterestingTag": [],
     "interestTagUrl": [],
-    "uninterestingTagUrl": [
-        "admin",
-        "cart",
-        "checkout",
-        "favorite",
-        "password",
-        "register",
-        "sendfriend",
-        "wishlist,",
-        "cgi-bin",
-        "includes",
-        "var,",
-        "filter",
-        "limit",
-        "order",
-        "sort,",
-        "sessionid",
-        "session_id",
-        "SID",
-        "PHPSESSID"
-    ]
+    "uninterestingTagUrl": []
 }

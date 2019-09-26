@@ -1,6 +1,9 @@
 const mongoose = require('mongoose');
+const {head} = require("lodash");
 const PageSchema = require('./PageSchema');
 const {getDomain} = require('../lib/tools');
+
+mongoose.set('useUnifiedTopology', true);
 
 class MongoManager {
     constructor({ host, port, database, username, password }) {
@@ -23,14 +26,12 @@ class MongoManager {
     }
 
     __onError(err) {
-        console.error('db error', err);
     }
     __onConnect() {
-        console.log('db success');
     }
 
     async createOrUpdatePage({ url, domain = getDomain(url), fetchDate = null, fetched = null, fetching = null, fetchInterest = null, match = null, language = null }) {
-        let page = await PageSchema.findOne({url});
+        let page = await this.getPageData(url);
         if(!page)
             page = new PageSchema();
 
@@ -44,13 +45,19 @@ class MongoManager {
         if(match) page.match = match;
         if(language) page.language = language;
         await page.save();
+        return page;
     }
 
     async getBestPageToFetch() {
-        return await PageSchema
+        const res = await PageSchema
             .find({fetched: false, fetching: false})
             .sort({ fetchInterest: -1 })
             .limit(1);
+        return head(res);
+    }
+
+    async getPageData(url) {
+        return await PageSchema.findOne({url});
     }
 
 }

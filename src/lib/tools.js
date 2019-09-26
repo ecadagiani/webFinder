@@ -31,37 +31,7 @@ function getRndInteger(min, max) {
     return Math.floor(Math.random() * (max - min + 1) ) + min;
 }
 
-function calculInterestScore(url, linkTexts, pageLanguage, {interestLanguage, interestTag, uninterestingTag, interestTagUrl, uninterestingTagUrl}){
-    let score = 0;
-    if( interestLanguage.includes(pageLanguage) )
-        score += 10;
-
-    const interestRegexArray = interestTag.map(tag => new RegExp(tag, 'i'));
-    const uninterestRegexArray = uninterestingTag.map(tag => new RegExp(tag, 'i'));
-    const interestUrlRegexArray = interestTagUrl.map(tag => new RegExp(tag, 'i'));
-    const uninterestUrlRegexArray = uninterestingTagUrl.map(tag => new RegExp(tag, 'i'));
-
-    if(interestUrlRegexArray.some(reg => reg.test(url)))
-        score += 2;
-    if(uninterestUrlRegexArray.some(reg => reg.test(url)))
-        score -= 2;
-
-    linkTexts.forEach(text => {
-        if(interestRegexArray.some(reg => reg.test(text)))
-            score += 1;
-        if(uninterestRegexArray.some(reg => reg.test(text)))
-            score -= 1;
-    });
-
-    score += getRndInteger(0, 2); // add some random
-
-    // todo check le nombre de link fetch du même domaine, si c'est trop gros on baisse le score proportionnelement
-    // le check doit etre memorisé
-
-    return score;
-}
-
 
 module.exports = {
-    getDomain, getHostName, calculInterestScore
+    getDomain, getHostName, getRndInteger
 };

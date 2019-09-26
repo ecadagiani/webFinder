@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "description": "",
   "main": "src/app.js",
-  "engines" : { "node" : ">10.0.0" },
+  "engines": {
+    "node": ">10.0.0"
+  },
   "scripts": {
     "start": "node src/app.js",
     "startdev": "nodemon src/app.js"
@@ -12,9 +14,13 @@
   "license": "MIT",
   "dependencies": {
     "bluebird": "^3.5.5",
+    "body-parser": "^1.19.0",
+    "cors": "^2.8.5",
+    "express": "^4.17.1",
     "lodash": "^4.17.15",
     "mongoose": "^5.7.1",
-    "puppeteer": "^1.19.0"
+    "puppeteer": "^1.19.0",
+    "saslprep": "^1.0.3"
   },
   "devDependencies": {
     "eslint": "^6.3.0",

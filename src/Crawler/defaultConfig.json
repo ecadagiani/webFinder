@@ -1,0 +1,76 @@
+{
+    "nbCrawler": 1,
+    "start": "",
+    "searchSelectors": [],
+    "mongo": {
+        "host": "",
+        "port": "",
+        "database": "",
+        "username": "",
+        "password": ""
+    },
+
+    "crawlInvisibleLink": false,
+
+    "interestMinimumScoreToContinue": 0,
+
+    "interestLanguage": [],
+    "domainWhitelist": [
+        "facebook.com",
+        "twitter.com",
+        "wikipedia.org",
+        "youtube.com",
+        "instagram.com",
+        "stackoverflow.com",
+        "npmjs.com",
+        "github.com",
+        "libraryofbabel.info",
+        "theinfinitelibrary"
+    ],
+    "mergeDomainWhitelist": true,
+
+    "interestTag": [],
+    "mergeInterestTag": true,
+    "interestTagImpact": 1,
+
+    "uninterestingTag": [
+        "admin",
+        "password",
+        "register",
+        "wishlist,",
+        "filter",
+        "limit",
+        "order",
+        "sort"
+    ],
+    "mergeUninterestTag": true,
+    "uninterestingTagImpact": -1,
+
+    "interestTagUrl": [],
+    "mergeInterestTagUrl": true,
+    "interestTagUrlImpact": 2,
+
+    "uninterestingTagUrl": [
+        "admin",
+        "cart",
+        "checkout",
+        "favorite",
+        "password",
+        "register",
+        "sendfriend",
+        "wishlist,",
+        "cgi-bin",
+        "includes",
+        "var,",
+        "filter",
+        "limit",
+        "order",
+        "sort,",
+        "sessionid",
+        "session_id",
+        "SID",
+        "PHPSESSID"
+    ],
+    "mergeUninterestTagUrl": true,
+    "uninterestingTagUrlImpact": -2
+}

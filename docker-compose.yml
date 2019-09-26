@@ -25,6 +25,8 @@ services:
     volumes:
       - .:/app
       - web_finder_node_volumes:/app/node_modules
+    environment:
+      PORT: 3030
     networks:
       default:
       web_finder_internal:
