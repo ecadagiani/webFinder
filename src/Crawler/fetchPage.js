@@ -1,7 +1,7 @@
-const {chain} = require('lodash');
-const {getDomain} = require("../lib/tools");
+const {chain, get} = require('lodash');
+const {getUrlParts} = require("../lib/tools");
 
-async function fetchLinks(page, {domainWhitelist, crawlInvisibleLink}) {
+async function fetchLinks(page, {domainWhitelist, crawlInvisibleLink, authorizedLinksExtensions, maxUrlLength, authorizedURIScheme}) {
     let links = await page.$$eval('a', anchors => {
 
         function isHidden(el) {
@@ -9,10 +9,8 @@ async function fetchLinks(page, {domainWhitelist, crawlInvisibleLink}) {
         }
 
         return anchors
-            // get only visible link, because invisible link is a common trap to catch web crawler
-            // get only http link
-            .filter(anchor => anchor.href.includes('http') )
             // get href and texts
+            .filter(anchor => !!anchor.href)
             .map(anchor => ({
                 href: anchor.href,
                 texts: [anchor.textContent],
@@ -20,22 +18,21 @@ async function fetchLinks(page, {domainWhitelist, crawlInvisibleLink}) {
             }));
     });
 
-    // get domain of each link
-    links = links.map(link => {
-        return {
-            ...link,
-            domain: getDomain(link.href)
-        };
-    });
-
-    // remove domainWhitelist link and invisble link (depend to config)
-    links = links.filter(({domain, invisible}) =>
-        domainWhitelist.every(whitelisted => domain !== whitelisted)
-        && (crawlInvisibleLink ? true : !invisible)
-    );
-    // todo filter on .zip, .png, ...
-
     links = chain(links)
+        .map(link => ({
+            // add url parts for next step
+            ...link,
+            ...getUrlParts(link.href)
+        }))
+        .filter(({href, domain, extension, uriScheme, invisible}) => {
+            // remove domainWhitelist, invisble link (depend to config), very long url, non supported uriScheme (ex: mailto:), non supported extension (ex: .png)
+            const lengthTest = href.length < maxUrlLength;
+            const invisibleTest = crawlInvisibleLink ? true : !invisible;
+            const domainTest = domainWhitelist.every(whitelisted => domain !== whitelisted);
+            const uriSchemeTest = authorizedURIScheme.includes( uriScheme );
+            const extensionTest = !extension || authorizedLinksExtensions.includes( extension );
+            return lengthTest && domainTest && invisibleTest && uriSchemeTest && extensionTest;
+        })
         .groupBy('href')
         .mapValues((values, key) => {
             return {
@@ -55,6 +52,7 @@ async function fetchLinks(page, {domainWhitelist, crawlInvisibleLink}) {
 }
 
 async function checkSearchSelectors(page, {searchSelectors}) {
+
     const result = await Promise.map(searchSelectors, async (searchSelector) => {
         return await page.$$eval(searchSelector, el => {
             return Array.isArray(el) && el.length > 0;

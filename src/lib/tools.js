@@ -1,37 +1,42 @@
-function getHostName(url) {
-    let match = url.match(/:\/\/(www[0-9]?\.)?(.[^/:]+)/i);
-    if (match != null && match.length > 2 && typeof match[2] === 'string' && match[2].length > 0) {
-        return match[2];
-    }
-    else {
-        return null;
-    }
+const {get} = require('lodash');
+const {URL} = require('url');
+
+function getUrlParts(url) {
+    const parsedUrl = new URL(url);
+
+    const domainResReg = (/[\w-]+\.(\w+|(co|com)\.\w+)$/gm).exec(parsedUrl.hostname);
+    const extensionRegRes = (/\.(\w+$)/gm).exec(parsedUrl.pathname);
+    const uriSchemeRegRes = (/[\w-]+/gm).exec(parsedUrl.protocol);
+
+    return {
+        uriScheme: get(uriSchemeRegRes, '[0]'),
+        extension: get(extensionRegRes, '[1]'),
+        domain: get(domainResReg, '[0]'),
+        pathname: parsedUrl.pathname,
+        hostname: parsedUrl.hostname,
+        port: parsedUrl.port,
+    };
 }
 
 function getDomain(url) {
-    let hostName = getHostName(url);
-    let domain = hostName;
-
-    if (hostName != null) {
-        let parts = hostName.split('.').reverse();
-
-        if (parts != null && parts.length > 1) {
-            domain = `${parts[1]  }.${  parts[0]}`;
-
-            if (hostName.toLowerCase().indexOf('.co.uk') != -1 && parts.length > 2) {
-                domain = `${parts[2]  }.${  domain}`;
-            }
-        }
-    }
-
-    return domain;
+    return getUrlParts(url).domain;
 }
 
 function getRndInteger(min, max) {
     return Math.floor(Math.random() * (max - min + 1) ) + min;
 }
 
+function testArrayOfString(array, value) {
+    return array.some(pattern => {
+        const reg = new RegExp(pattern, 'i');
+        return reg.test(value);
+    });
+}
+
+function wait(ms) {
+    return new Promise(r=>setTimeout(r, ms));
+}
 
 module.exports = {
-    getDomain, getHostName, getRndInteger
+    getDomain, getUrlParts, getRndInteger, testArrayOfString, wait
 };

@@ -1,6 +1,7 @@
 {
     "nbCrawler": 1,
-    "start": "https://hellomybot.io/fr/bienvenue/",
+    "start3": "https://hellomybot.io/fr/bienvenue/",
+    "start": "https://www.zendesk.com/apps/directory/?q=&idx=appsIndex&p=0&hFR%5Bproducts%5D%5B0%5D=support&product=support",
     "searchSelectors": [
         "script[src*='zdassets']",
         "script[src*='web-assets.zendesk']"
@@ -12,10 +13,12 @@
         "username": "crawler",
         "password": "password"
     },
+    "waitForPageLoadTimeout": 20000,
     "crawlInvisibleLink": true,
     "interestLanguage": [
         "fr",
-        "fr-FR"
+        "fr-FR",
+        "FR"
     ],
     "domainWhitelist": [],
     "interestTag": [
@@ -26,9 +29,18 @@
         "faq",
         "savoir",
         "parle",
-        "startup"
+        "startup",
+        "support",
+        "produit",
+        "product"
     ],
     "uninterestingTag": [],
-    "interestTagUrl": [],
+    "interestTagUrl": [
+        "support",
+        "app",
+        "product",
+        "produit",
+        "contact"
+    ],
     "uninterestingTagUrl": []
 }

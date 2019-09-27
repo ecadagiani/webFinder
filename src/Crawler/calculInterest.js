@@ -1,35 +1,46 @@
-const {getRndInteger} = require('../lib/tools');
+const {get, find} = require('lodash');
+const {getRndInteger, testArrayOfString} = require('../lib/tools');
 
-function calculInterestScore(url, linkTexts, pageLanguage, config){
+function calculInterestScore(url, domain, linkTexts, pageLanguage, domainsUsage, config) {
     const {
-        interestLanguage, interestTag, uninterestingTag, interestTagUrl, uninterestingTagUrl,
-        interestTagImpact, uninterestingTagImpact, interestTagUrlImpact, uninterestingTagUrlImpact
+        minimumDomainRepetitionCrawlerTrap, domainRepetitionImpactFunction,
+        interestLanguage, interestLanguageImpact, uninterestLanguageImpact,
+        interestTag, uninterestingTag, interestTagUrl, uninterestingTagUrl,
+        interestTagImpact, uninterestingTagImpact, interestTagUrlImpact, uninterestingTagUrlImpact,
+        interestRandRange,
     } = config;
     let score = 0;
+
+
+    // domain repetition ( to detect crawler trap )
+    const findDomainUsage = find(domainsUsage, {domain});
+    if(get(findDomainUsage, 'count') > minimumDomainRepetitionCrawlerTrap) {
+        const fn = eval(domainRepetitionImpactFunction);
+        score = fn(findDomainUsage.count, score);
+    }
+
+
+    // language
     if( interestLanguage.includes(pageLanguage) )
-        score += 10;
+        score += interestLanguageImpact;
+    else
+        score += uninterestLanguageImpact;
 
-    const interestRegexArray = interestTag.map(tag => new RegExp(tag, 'i'));
-    const uninterestRegexArray = uninterestingTag.map(tag => new RegExp(tag, 'i'));
-    const interestUrlRegexArray = interestTagUrl.map(tag => new RegExp(tag, 'i'));
-    const uninterestUrlRegexArray = uninterestingTagUrl.map(tag => new RegExp(tag, 'i'));
 
-    if(interestUrlRegexArray.some(reg => reg.test(url)))
+    // interestUrl
+    if(testArrayOfString(interestTagUrl, url)) //todo each match impact score and each tag can have a specific impact
         score += interestTagUrlImpact;
-    if(uninterestUrlRegexArray.some(reg => reg.test(url)))
+    if(testArrayOfString(uninterestingTagUrl, url))
         score += uninterestingTagUrlImpact;
 
-    linkTexts.forEach(text => {
-        if(interestRegexArray.some(reg => reg.test(text)))
-            score += interestTagImpact;
-        if(uninterestRegexArray.some(reg => reg.test(text)))
-            score += uninterestingTagImpact;
-    });
+    // interest
+    if( linkTexts.some(text => testArrayOfString(interestTag, text)) )
+        score += interestTagImpact;
+    if( linkTexts.some(text => testArrayOfString(uninterestingTag, text)) )
+        score += uninterestingTagImpact;
 
-    score += getRndInteger(0, 2); // add some random
-
-    // todo check le nombre de link fetch du même domaine, si c'est trop gros on baisse le score proportionnelement
-    // le check doit etre memorisé
+    // rand
+    score += getRndInteger(interestRandRange.min, interestRandRange.max); // add some random
 
     return score;
 }

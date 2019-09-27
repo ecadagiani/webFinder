@@ -12,10 +12,13 @@ const PageSchema = new Schema({
 
     match: { type: Boolean, default: false },
     language: { type: String, default: null },
+
+    error: { type: Boolean, default: false },
+    errorMessage: String,
 }, {
     autoIndex: true,
     strict: true,
-    minimize: false,
+    minimize: true,
     versionKey: false,
     timestamps: true,
 });

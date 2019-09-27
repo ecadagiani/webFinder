@@ -3,6 +3,8 @@ services:
   web_finder_mongo:
     image: mongo:latest
     restart: always
+    logging:
+      driver: none
     volumes:
       - ./mongo:/docker-entrypoint-initdb.d:ro
       - web_finder_mongo_volumes:/data/db
