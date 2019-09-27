@@ -81,7 +81,7 @@ class Crawler {
             if(errorCount < 2) {
                 this.logError(`error ${errorCount + 1} on fetch, crawler will try again  - ${err.message}`);
                 await this.init();
-                return await this.tryToFetchPage(url, errorCount + 1);
+                return await this._tryToFetchPage(url, errorCount + 1);
             }
 
             this.logError(`error ${errorCount + 1} on fetch - ${err.message}`);
@@ -117,7 +117,9 @@ class Crawler {
                 this.page.goto(url),
             ]);
         }catch(err) {
-            if(basicNavigationErrorCode.some(errorCode => err.message.includes(errorCode)) ) {
+            if(
+                Object.values(basicNavigationErrorCode).some(errorCode => err.message.includes(errorCode))
+            ) {
                 await this.mongoManager.createOrUpdatePage({url, fetched: true, fetching: false});
                 return null;
             }

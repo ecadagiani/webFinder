@@ -1,5 +1,5 @@
 const {chain, get} = require('lodash');
-const {getUrlParts} = require("../lib/tools");
+const {getUrlParts} = require('../lib/tools');
 
 async function fetchLinks(page, {domainWhitelist, crawlInvisibleLink, authorizedLinksExtensions, maxUrlLength, authorizedURIScheme}) {
     let links = await page.$$eval('a', anchors => {
@@ -19,19 +19,22 @@ async function fetchLinks(page, {domainWhitelist, crawlInvisibleLink, authorized
     });
 
     links = chain(links)
-        .map(link => ({
-            // add url parts for next step
-            ...link,
-            ...getUrlParts(link.href)
-        }))
-        .filter(({href, domain, extension, uriScheme, invisible}) => {
+        .map(link => { // add url parts for next step
+            const urlParts = getUrlParts(link.href);
+            if(urlParts) return { ...link, ...getUrlParts(link.href) };
+            else return { ...link, invalid: true };
+        })
+        .filter(({href, domain, extension, uriScheme, invisible, invalid}) => {
             // remove domainWhitelist, invisble link (depend to config), very long url, non supported uriScheme (ex: mailto:), non supported extension (ex: .png)
-            const lengthTest = href.length < maxUrlLength;
-            const invisibleTest = crawlInvisibleLink ? true : !invisible;
-            const domainTest = domainWhitelist.every(whitelisted => domain !== whitelisted);
-            const uriSchemeTest = authorizedURIScheme.includes( uriScheme );
-            const extensionTest = !extension || authorizedLinksExtensions.includes( extension );
-            return lengthTest && domainTest && invisibleTest && uriSchemeTest && extensionTest;
+            if(invalid) return false;
+
+            if(href.length > maxUrlLength) return false;
+            if(!crawlInvisibleLink && invisible) return false;
+            if(domainWhitelist.some(whitelisted => domain === whitelisted)) return false;
+            if(!authorizedURIScheme.includes( uriScheme )) return false;
+            if(extension && !authorizedLinksExtensions.includes( extension )) return false;
+
+            return true;
         })
         .groupBy('href')
         .mapValues((values, key) => {

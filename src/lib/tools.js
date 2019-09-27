@@ -2,7 +2,12 @@ const {get} = require('lodash');
 const {URL} = require('url');
 
 function getUrlParts(url) {
-    const parsedUrl = new URL(url);
+    let parsedUrl;
+    try{
+        parsedUrl = new URL(url);
+    }catch(err) {
+        return null;
+    }
 
     const domainResReg = (/[\w-]+\.(\w+|(co|com)\.\w+)$/gm).exec(parsedUrl.hostname);
     const extensionRegRes = (/\.(\w+$)/gm).exec(parsedUrl.pathname);
@@ -19,7 +24,9 @@ function getUrlParts(url) {
 }
 
 function getDomain(url) {
-    return getUrlParts(url).domain;
+    const urlParts = getUrlParts(url);
+    if(!urlParts) return null;
+    return urlParts.domain;
 }
 
 function getRndInteger(min, max) {
