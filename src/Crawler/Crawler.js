@@ -1,6 +1,5 @@
 const puppeteer = require('puppeteer');
 const {get, chain, template} = require('lodash');
-const {URL} = require('url');
 
 const MongoManager = require('../mongo/MongoManager');
 const {wait, getRndInteger, drawWithoutDuplicate} = require('@ecadagiani/jstools');
@@ -69,7 +68,7 @@ class Crawler {
         const newUrl = await this._tryToGetNewLink(fetchedPages);
         this.debuglogTimeMessage('time to tryToGetNewLink:', 'internLoopFunction');
 
-        const timeToFetch = this.debuglogTimeMessage(`${url}fetched in`, 'loop');
+        const timeToFetch = this.debuglogTimeMessage(`fetched ${url} in`, 'loop');
         if(timeToFetch < this.config.timeBetweenTwoFetch)
             await wait(this.config.timeBetweenTwoFetch - timeToFetch);
 
@@ -106,7 +105,7 @@ class Crawler {
         try{
             await Promise.all([
                 this.mongoManager.createOrUpdatePage({url, fetching: true}),
-                this.page.waitForNavigation({ waitUntil: ['load'], timeout: this.config.waitForPageLoadTimeout }), // , 'domcontentloaded'
+                this.page.waitForNavigation({ waitUntil: ['load', 'domcontentloaded'], timeout: this.config.waitForPageLoadTimeout }), // , 'domcontentloaded'
                 this.page.goto(url),
             ]);
         }catch(err) {
@@ -121,6 +120,7 @@ class Crawler {
         this.debuglogTimeMessage('time to navigate:', 'fetchPage');
 
         // fetch DOM data
+        await this.page.waitForSelector('body');
         let pageData = await Promise.props({
             match: await checkSearchSelectors(this.page, this.config),
             language: await getPageLanguage(this.page),
@@ -130,9 +130,9 @@ class Crawler {
         this.debuglogTimeMessage('time to fetch DOM data:', 'fetchPage');
 
         // calculate links score
-        links = await Promise.map(links, link => ({
+        links = await Promise.map(links, async link => ({
             ...link,
-            interestScore: calculInterestScore(link.href, link.domain, link.texts, language, this.config),
+            interestScore: await calculInterestScore(link.href, link.domain, link.texts, language, this.config),
         }));
         this.debuglogTimeMessage('time to calculate links score:', 'fetchPage');
 

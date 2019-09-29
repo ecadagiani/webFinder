@@ -50,22 +50,23 @@ async function fetchLinks(page, {domainWhitelist, crawlInvisibleLink, authorized
 }
 
 
-async function checkSearchSelectors(page, {searchSelectors}) {
-    // todo too long
-    try{
-        await Promise.each(searchSelectors, async (searchSelector) =>
-            page.waitForSelector(searchSelector, { timeout: 3000 })
-        );
-    }catch(err) {
+async function checkSearchSelectors(page, {searchSelectors, searchFunction: searchFunctionString}) {
+    const result = await page.evaluate((selectors = [], stringFunction) => {
+        const selectorRes = selectors.some(selector => !!document.querySelector(selector));
+        if(selectorRes) return selectorRes;
+        if(stringFunction) {
+            try {
+                const func = eval(stringFunction);
+                if(typeof func === 'function')
+                    return func();
+            }catch{
+                return false;
+            }
+        }
         return false;
-    }
-
-    const result = await Promise.map(searchSelectors, async (searchSelector) => {
-        return await page.$$eval(searchSelector, el => {
-            return Array.isArray(el) && el.length > 0;
-        });
-    });
-    return result.includes(true);
+    }, searchSelectors, searchFunctionString);
+    console.log(searchFunctionString, result)
+    return result;
 }
 
 

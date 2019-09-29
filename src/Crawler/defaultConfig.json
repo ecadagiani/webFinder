@@ -4,6 +4,7 @@
     "nbCrawler": 1,
     "start": "",
     "searchSelectors": [],
+    "searchFunction": null,
     "mongo": {
         "host": "",
         "port": "",
@@ -63,11 +64,13 @@
     "mergeDomainWhitelist": true,
 
     "interestTag": [],
+    "interestTagDefaultImpact": 1,
     "mergeInterestTag": true,
-    "interestTagImpact": 1,
 
     "uninterestingTag": [
-        "admin",
+        {
+            "tag": "admin", "impact": -1
+        },
         "password",
         "register",
         "registration",
@@ -81,12 +84,12 @@
         "sort",
         "add"
     ],
+    "uninterestingTagDefaultImpact": -1,
     "mergeUninterestTag": true,
-    "uninterestingTagImpact": -1,
 
     "interestTagUrl": [],
+    "interestTagUrlDefaultImpact": 2,
     "mergeInterestTagUrl": true,
-    "interestTagUrlImpact": 2,
 
     "uninterestingTagUrl": [
         "admin",
@@ -113,8 +116,8 @@
         "PHPSESSID",
         "add"
     ],
+    "uninterestingTagUrlDefaultImpact": -2,
     "mergeUninterestTagUrl": true,
-    "uninterestingTagUrlImpact": -2,
 
     "searchTags" : [
         "foo", "bar", "crawler"

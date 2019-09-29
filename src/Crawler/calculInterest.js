@@ -1,11 +1,19 @@
-const {testArrayOfString} = require('../lib/tools');
 const {getRndInteger} = require('@ecadagiani/jstools');
 
-function calculInterestScore(url, domain, linkTexts, pageLanguage, config) {
+
+async function calculTagsArrayScore(tagsArray, text){
+    return await Promise.reduce(tagsArray, (totalScore, {tag, impact}) => {
+        const reg = new RegExp(tag, 'i');
+        if(reg.test(text))
+            return totalScore + impact;
+        return totalScore;
+    }, 0);
+}
+
+async function calculInterestScore(url, domain, linkTexts, pageLanguage, config) {
     const {
         interestLanguage, interestLanguageImpact, uninterestLanguageImpact,
         interestTag, uninterestingTag, interestTagUrl, uninterestingTagUrl,
-        interestTagImpact, uninterestingTagImpact, interestTagUrlImpact, uninterestingTagUrlImpact,
         interestRandRange,
     } = config;
     let score = 0;
@@ -18,19 +26,20 @@ function calculInterestScore(url, domain, linkTexts, pageLanguage, config) {
 
 
     // interestUrl
-    if(testArrayOfString(interestTagUrl, url)) //todo each match impact score and each tag can have a specific impact
-        score += interestTagUrlImpact;
-    if(testArrayOfString(uninterestingTagUrl, url))
-        score += uninterestingTagUrlImpact;
+    score += await calculTagsArrayScore(interestTagUrl, url);
+    score += await calculTagsArrayScore(uninterestingTagUrl, url);
 
     // interest
-    if( linkTexts.some(text => testArrayOfString(interestTag, text)) )
-        score += interestTagImpact;
-    if( linkTexts.some(text => testArrayOfString(uninterestingTag, text)) )
-        score += uninterestingTagImpact;
+    score += await Promise.reduce(linkTexts, async (totalScore, text) => {
+        return totalScore
+            + await calculTagsArrayScore(interestTag, text)
+            + await calculTagsArrayScore(uninterestingTag, text);
+    }, 0);
 
     // rand
-    score += getRndInteger(interestRandRange.min, interestRandRange.max); // add some random
+    const {min, max } = interestRandRange || {};
+    if(min === 'number' && max === 'number' && min !== max)
+        score += getRndInteger(interestRandRange.min, interestRandRange.max); // add some random
 
     return score;
 }
