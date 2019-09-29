@@ -15,7 +15,7 @@ app.use(cors({ 'origin': '*' }));
 
 app.listen(process.env.PORT, async () => {
     console.log(`launch ${config.nbCrawler} Crawlers`);
-    await Promise.map(new Array(config.nbCrawler), async () => {
+    const crawlers = await Promise.map(new Array(config.nbCrawler), async () => {
         const crawler = new Crawler(config);
         await crawler.init();
         crawler.start();
@@ -23,7 +23,4 @@ app.listen(process.env.PORT, async () => {
     });
 
     console.log('All Crawlers are launched');
-
-    // await Promise.each(crawlers, async (crawler) => await crawler.stop());
-    // await Crawler.closeBrowser();
 });

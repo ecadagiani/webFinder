@@ -21,9 +21,13 @@ class Crawler {
 
 
     async init() {
-        await this.stop();
-
         await Crawler.initBrowser(this.config.browserLanguage);
+
+        if(this.page && !this.page.isClosed())
+            await this.page.close();
+        if(this.mongoManager)
+            this.mongoManager.close();
+
         this.page = await Crawler.browser.newPage();
         this.mongoManager = new MongoManager(this.config);
         this.mongoManager.init();
@@ -32,14 +36,26 @@ class Crawler {
     }
 
 
+    // todo make a better stop system
     async stop() {
-        this.breakLoop = true; // todo setup better stop with an event and await function
+        this.log('stopping');
+        this.breakLoop = true;
+    }
+
+    async _stopNext() {
         if(this.page && !this.page.isClosed())
             await this.page.close();
         this.page = null;
         if(this.mongoManager)
             this.mongoManager.close();
         this.mongoManager = null;
+        this.log('stopped');
+    }
+
+    _doIhaveToStop() {
+        if(!this.breakLoop) return false;
+        this._stopNext();
+        return true;
     }
 
 
@@ -53,11 +69,10 @@ class Crawler {
 
 
     async _loop(url) {
+        if(this._doIhaveToStop()) return;
+
         this.reinitTimeMessage('loop');
         this.reinitTimeMessage('internLoopFunction');
-
-        if(this.breakLoop)
-            return;
 
         if(!url)
             throw this.error('The crawler failed to find a valid url');
@@ -77,13 +92,14 @@ class Crawler {
 
 
     async _tryToFetchPage(url, errorCount = 0) {
+        if(this._doIhaveToStop()) return;
         this.log(`fetch - ${url}`);
         let fetchedPages = [];
         try{
             fetchedPages = await this.fetchPage(url);
         }catch (err) {
-            if(this.config.throwError)
-                throw err;
+            if(this._doIhaveToStop()) return;
+            if(this.config.throwError) throw err;
 
             if(err.code === 6001) { // Domain recovery failed
                 this.logError(`error on fetch - ${err.message}`);
@@ -147,6 +163,8 @@ class Crawler {
         }));
         this.debuglogTimeMessage('time to calculate links score:', 'fetchPage');
 
+        if(this._doIhaveToStop()) return;
+
         // save all data
         const res =  await Promise.map([
             {
@@ -169,10 +187,12 @@ class Crawler {
 
 
     async _tryToGetNewLink(previousFetchedPage, errorCount = 0) {
+        if(this._doIhaveToStop()) return;
         let url = null;
         try{
             url = await this._getNewLink(previousFetchedPage);
         }catch(err) {
+            if(this._doIhaveToStop()) return;
             if(this.config.throwError)
                 throw err;
             if(errorCount < 2) {
@@ -313,7 +333,7 @@ Crawler.initBrowser = async (browserLanguage = 'en-US') => {
 
     if(!Crawler.__browser)
         Crawler.__browser = await puppeteer.launch(browserOptions);
-    if(!Crawler.__browser.isConnected()) {
+    else if(!Crawler.__browser.isConnected()) {
         await Crawler.closeBrowser();
         Crawler.__browser = await puppeteer.launch(browserOptions);
     }

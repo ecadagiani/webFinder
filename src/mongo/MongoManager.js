@@ -7,7 +7,7 @@ const {getDomain} = require('../lib/tools');
 mongoose.set('useUnifiedTopology', true);
 mongoose.set('useFindAndModify', false);
 
-class MongoManager {
+class MongoManager { // todo make singleton
     constructor({mongo: {host, port, database, username, password}, domainScoreFunction}) {
         this.config = { host, port, database, username, password, domainScoreFunction };
         this.db = null;
@@ -17,7 +17,7 @@ class MongoManager {
         this.connect();
     }
 
-    connect() { // todo get specifique connexion not standard mongoose.connection
+    connect() {
         this.db = mongoose.connection;
         this.db.on('error', this.__onError);
         this.db.on('open', this.__onConnect);

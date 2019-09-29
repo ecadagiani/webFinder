@@ -3,8 +3,8 @@
     "nbCrawler": 1,
     "start4": " https://www.apple.com/fr/education/ipad/",
     "start3": "https://support.apple.com/kb/index?page=search&locale=fr_FR",
-    "start2": "https://hellomybot.io/fr/bienvenue/",
-    "start": "https://www.zendesk.com/apps/directory/?q=&idx=appsIndex&p=0&hFR%5Bproducts%5D%5B0%5D=support&product=support",
+    "start": "https://hellomybot.io/fr/bienvenue/",
+    "start2": "https://www.zendesk.com/apps/directory/?q=&idx=appsIndex&p=0&hFR%5Bproducts%5D%5B0%5D=support&product=support",
     "searchSelectors": [ "iframe.zEWidget-launcher" ],
     "searchFunction": "() => window.hasOwnProperty('$zopim')",
     "mongo": {
@@ -44,7 +44,8 @@
         "question",
         "aide",
         "help",
-        "information"
+        "information",
+        "zopim"
     ],
     "uninterestingTag": [],
     "interestTagUrl": [
@@ -57,7 +58,8 @@
         "question",
         "help",
         "aide",
-        "chat"
+        "chat",
+        "zopim"
     ],
     "uninterestingTagUrl": [],
     "searchTags" : [
@@ -68,7 +70,8 @@
         "chabot",
         "zendesk",
         "question",
-        "information"
+        "information",
+        "zopim"
     ],
     "maxCombinationSearchTags": 3
 }
