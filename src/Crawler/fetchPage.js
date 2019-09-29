@@ -51,6 +51,7 @@ async function fetchLinks(page, {domainWhitelist, crawlInvisibleLink, authorized
 
 
 async function checkSearchSelectors(page, {searchSelectors}) {
+    // todo too long
     try{
         await Promise.each(searchSelectors, async (searchSelector) =>
             page.waitForSelector(searchSelector, { timeout: 3000 })

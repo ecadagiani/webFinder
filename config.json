@@ -41,7 +41,8 @@
         "product",
         "question",
         "aide",
-        "help"
+        "help",
+        "information"
     ],
     "uninterestingTag": [],
     "interestTagUrl": [
@@ -64,7 +65,8 @@
         "bot",
         "chabot",
         "zendesk",
-        "question"
+        "question",
+        "information"
     ],
     "maxCombinationSearchTags": 3
 }

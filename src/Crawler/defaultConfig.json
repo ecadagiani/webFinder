@@ -1,5 +1,6 @@
 {
     "debug": false,
+    "throwError": false,
     "nbCrawler": 1,
     "start": "",
     "searchSelectors": [],
@@ -15,6 +16,7 @@
     "maxUrlLength": 800,
     "timeBetweenTwoFetch": 1000,
     "crawlInvisibleLink": false,
+    "searchEngineUrl": "https://duckduckgo.com?q=${query}",
     "domainScoreFunction": "(domain, nbFetch) => domain === 'duckduckgo.com' ? 0 : (nbFetch < 50 ? 0 : Math.floor( (nbFetch-50) * -5 ))",
     "interestMinimumScoreToContinue": 0,
     "interestMinimumScoreToFetchDb": 0,

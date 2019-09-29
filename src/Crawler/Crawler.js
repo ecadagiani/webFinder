@@ -1,5 +1,5 @@
 const puppeteer = require('puppeteer');
-const {get, chain, uniq} = require('lodash');
+const {get, chain, template} = require('lodash');
 const {URL} = require('url');
 
 const MongoManager = require('../mongo/MongoManager');
@@ -17,6 +17,7 @@ class Crawler {
         this.page = null;
         this.mongoManager = null;
         this.breakLoop = false;
+        this.__time = {};
     }
 
 
@@ -53,7 +54,9 @@ class Crawler {
 
 
     async _loop(url) {
-        const time = Date.now();
+        this.reinitTimeMessage('loop');
+        this.reinitTimeMessage('internLoopFunction');
+
         if(this.breakLoop)
             return;
 
@@ -61,11 +64,12 @@ class Crawler {
             throw this.error('The crawler failed to find a valid url');
 
         const fetchedPages = await this._tryToFetchPage(url);
+        this.debuglogTimeMessage('time to tryToFetchPage', 'internLoopFunction');
 
         const newUrl = await this._tryToGetNewLink(fetchedPages);
+        this.debuglogTimeMessage('time to tryToGetNewLink:', 'internLoopFunction');
 
-        const timeToFetch = Date.now() - time;
-        this.log(`fetched in ${timeToFetch / 1000}s - ${url}`);
+        const timeToFetch = this.debuglogTimeMessage(`${url}fetched in`, 'loop');
         if(timeToFetch < this.config.timeBetweenTwoFetch)
             await wait(this.config.timeBetweenTwoFetch - timeToFetch);
 
@@ -79,7 +83,7 @@ class Crawler {
         try{
             fetchedPages = await this.fetchPage(url);
         }catch (err) {
-            if(this.config.debug)
+            if(this.config.throwError)
                 throw err;
             if(errorCount < 2) {
                 this.logError(`error on fetch (${errorCount + 1}) - ${err.message}`);
@@ -98,10 +102,11 @@ class Crawler {
 
     async fetchPage(url) {
         // access to the page and set page fetching
+        this.reinitTimeMessage('fetchPage');
         try{
             await Promise.all([
                 this.mongoManager.createOrUpdatePage({url, fetching: true}),
-                this.page.waitForNavigation({ waitUntil: ['load', 'domcontentloaded'], timeout: this.config.waitForPageLoadTimeout }),
+                this.page.waitForNavigation({ waitUntil: ['load'], timeout: this.config.waitForPageLoadTimeout }), // , 'domcontentloaded'
                 this.page.goto(url),
             ]);
         }catch(err) {
@@ -113,23 +118,26 @@ class Crawler {
             }
             throw err;
         }
+        this.debuglogTimeMessage('time to navigate:', 'fetchPage');
 
-        // get page data
+        // fetch DOM data
         let pageData = await Promise.props({
             match: await checkSearchSelectors(this.page, this.config),
             language: await getPageLanguage(this.page),
             links: await fetchLinks(this.page, this.config),
         });
         let {match = false, language, links = []} = pageData;
+        this.debuglogTimeMessage('time to fetch DOM data:', 'fetchPage');
 
-        // set links score
+        // calculate links score
         links = await Promise.map(links, link => ({
             ...link,
             interestScore: calculInterestScore(link.href, link.domain, link.texts, language, this.config),
         }));
+        this.debuglogTimeMessage('time to calculate links score:', 'fetchPage');
 
         // save all data
-        return await Promise.map([
+        const res =  await Promise.map([
             {
                 url,
                 match,
@@ -144,6 +152,8 @@ class Crawler {
                 fetchInterest: link.interestScore,
             })),
         ], pageData => this.mongoManager.createOrUpdatePage(pageData));
+        this.debuglogTimeMessage('time to save all data in mongo:', 'fetchPage');
+        return res;
     }
 
 
@@ -152,7 +162,7 @@ class Crawler {
         try{
             url = await this._getNewLink(previousFetchedPage);
         }catch(err) {
-            if(this.config.debug)
+            if(this.config.throwError)
                 throw err;
             if(errorCount < 2) {
                 this.logError(`error ${errorCount + 1} on get new link, crawler will try again  - ${err.message}`);
@@ -166,6 +176,19 @@ class Crawler {
 
 
     async _getNewLink(previousFetchedPage = []) {
+
+        // if we don't have a decent link in mongo, we find new links with config searchEngineUrl
+        if(this.config.searchEngineUrl) {
+            const searchEngineLink = this._getRandomSearchEngineLink();
+            const searchEngineLinkMongo = await this.mongoManager.getPage(searchEngineLink);
+            // if duckduckgo links is not present in mongo or if it was fetched more than 15 days ago
+            if(
+                !searchEngineLink
+                || Date.now() - (get(searchEngineLinkMongo, 'fetchDate') || new Date() ).getTime() > 15 * 24 * 60 * 60 * 1000
+            )
+                return searchEngineLink;
+        }
+
         let futurPage = null;
         futurPage = chain(previousFetchedPage)
             .filter(page =>
@@ -186,17 +209,10 @@ class Crawler {
         if(futurPage)
             return futurPage.url;
 
-        // if we don't have a decent link in mongo, we find new links with duckduckgo
-        const ddgLink = this._getRandomDuckDuckGoSearchLink();
-        const ddgLinkMongo = await this.mongoManager.getPage(ddgLink);
-        // if duckduckgo links is not present in mongo or if it was fetched more than 15 days ago
-        if(
-            !ddgLinkMongo
-            || Date.now() - (get(ddgLinkMongo, 'fetchDate') || new Date() ).getTime() > 15 * 24 * 60 * 60 * 1000
-        )
-            return ddgLink;
 
-        // if duckduckgo link have already been fetch, we get link from mongo without decent score
+
+
+        // if searchEngine link have already been fetch, we get link from mongo without decent score
         futurPage = await this.mongoManager.getBestPageToFetch();
         if(futurPage)
             return futurPage.url;
@@ -204,7 +220,8 @@ class Crawler {
         return null;
     }
 
-    _getRandomDuckDuckGoSearchLink() {
+
+    _getRandomSearchEngineLink() {
         const {searchTags, maxCombinationSearchTags} = this.config;
         const nbTagsToDraw = getRndInteger(
             1,
@@ -212,9 +229,18 @@ class Crawler {
         );
 
         const resTags = drawWithoutDuplicate(searchTags, nbTagsToDraw);
-        const ddgUrl = new URL('https://duckduckgo.com');
-        ddgUrl.searchParams.set('q', resTags.join(' '));
-        return ddgUrl.href;
+        // const ddgUrl = new URL('https://duckduckgo.com');
+        // ddgUrl.searchParams.set('q', resTags.join(' '));
+        // return ddgUrl.href;
+
+        let url = null;
+        try{
+            const compiled = template( this.config.searchEngineUrl );
+            url = compiled( {query: resTags.join('+')} );
+        }catch( e ) {
+            return null;
+        }
+        return url;
     }
 
 
@@ -222,13 +248,25 @@ class Crawler {
         const date = new Date();
         console.log(`[${date.toISOString()}] Crawler ${this.id}: `, ...texts);
     }
-
+    debugLog(...texts) {
+        if(this.config.debug)
+            this.log(...texts);
+    }
 
     logError(...texts) {
         const date = new Date();
         console.error(`[${date.toISOString()}] Crawler ${this.id}: `, ...texts);
     }
 
+    debuglogTimeMessage(text, timeId = 'default') {
+        const timeToFetch = Date.now() - this.__time[timeId];
+        this.__time[timeId] = Date.now();
+        this.debugLog(text, `${timeToFetch / 1000}s`);
+        return timeToFetch;
+    }
+    reinitTimeMessage(timeId = 'default') {
+        this.__time[timeId] = Date.now();
+    }
 
     error(error) {
         if(error instanceof Error)
