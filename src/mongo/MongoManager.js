@@ -80,6 +80,12 @@ class MongoManager {
     }, { // - OPTIONS
         saveDomain = true // if saveDomain is true, is use domain or the url to create an domain or updated if exist
     } = {}) {
+        if(!domain) {
+            const err =  new Error(`Domain recovery failed on url ${url}`);
+            err.code = 6001;
+            throw err;
+        }
+
         let page = await this.getPage(url);
         if(!page)
             page = new PageSchema();

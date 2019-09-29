@@ -45,21 +45,8 @@
     "interestLanguageImpact": 20,
     "uninterestLanguageImpact": -10,
     "domainWhitelist": [
-        "facebook.com",
-        "twitter.com",
-        "wikipedia.org",
-        "youtube.com",
-        "instagram.com",
-        "stackoverflow.com",
-        "npmjs.com",
-        "github.com",
         "libraryofbabel.info",
-        "theinfinitelibrary.com",
-        "google.com",
-        "google.fr",
-        "pinterest.com",
-        "leboncoin.fr",
-        "smartadserver.com"
+        "theinfinitelibrary.com"
     ],
     "mergeDomainWhitelist": true,
 

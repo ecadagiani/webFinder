@@ -22,7 +22,11 @@
         "fr-FR",
         "FR"
     ],
-    "domainWhitelist": [],
+    "domainWhitelist": [
+        "youtube.com",
+        "youtu.be",
+        "leboncoin.fr"
+    ],
     "interestTag": [
         "bot",
         "chatbot",

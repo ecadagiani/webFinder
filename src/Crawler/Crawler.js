@@ -1,5 +1,5 @@
 const puppeteer = require('puppeteer');
-const {get, chain, template} = require('lodash');
+const {get, chain, template, uniq} = require('lodash');
 
 const MongoManager = require('../mongo/MongoManager');
 const {wait, getRndInteger, drawWithoutDuplicate} = require('@ecadagiani/jstools');
@@ -84,8 +84,14 @@ class Crawler {
         }catch (err) {
             if(this.config.throwError)
                 throw err;
+
+            if(err.code === 6001) { // Domain recovery failed
+                this.logError(`error on fetch - ${err.message}`);
+                return null;
+            }
             if(errorCount < 2) {
                 this.logError(`error on fetch (${errorCount + 1}) - ${err.message}`);
+                this.log('will try again');
                 await this.init();
                 return await this._tryToFetchPage(url, errorCount + 1);
             }
@@ -119,9 +125,9 @@ class Crawler {
         }
         this.debuglogTimeMessage('time to navigate:', 'fetchPage');
 
-        // wait for body appear, and min 1 sec
+        // wait for body appear (5sec max), and min 1 sec
         await Promise.all([
-            this.page.waitForSelector('body'),
+            this.page.waitForSelector('body', {timeout: 5000}),
             wait(1000),
         ]);
 
@@ -181,27 +187,30 @@ class Crawler {
 
 
     async _getNewLink(previousFetchedPage = []) {
-
-        // if we don't have a decent link in mongo, we find new links with config searchEngineUrl
-        if(this.config.searchEngineUrl) {
-            const searchEngineLink = this._getRandomSearchEngineLink();
-            const searchEngineLinkMongo = await this.mongoManager.getPage(searchEngineLink);
-            // if duckduckgo links is not present in mongo or if it was fetched more than 15 days ago
-            if(
-                !searchEngineLink
-                || Date.now() - (get(searchEngineLinkMongo, 'fetchDate') || new Date() ).getTime() > 15 * 24 * 60 * 60 * 1000
-            )
-                return searchEngineLink;
-        }
-
         let futurPage = null;
+
+        const allDomains = uniq(previousFetchedPage.map(x => x.domain).filter(x => !!x));
+        const domainsDb = await Promise.map(allDomains, domain => this.mongoManager.getDomain(domain));
+        const domainScore = domainsDb
+            .filter(x => !!x)
+            .reduce((obj, domain) => {
+                obj[domain.domain] = domain.score;
+                return obj;
+            }, {});
+
         futurPage = chain(previousFetchedPage)
+            .map(page => ({
+                fetched: page.fetched,
+                fetching: page.fetched,
+                url: page.url,
+                score: page.fetchInterest + (get(domainScore, page.domain) || 0)
+            }))
             .filter(page =>
                 !page.fetched
                 && !page.fetching
-                && page.fetchInterest > this.config.interestMinimumScoreToContinue
+                && page.score > this.config.interestMinimumScoreToContinue
             )
-            .orderBy(['interestScore'], ['desc'])
+            .orderBy(['score'], ['desc'])
             .head()
             .value();
 
@@ -215,6 +224,17 @@ class Crawler {
             return futurPage.url;
 
 
+        // if we don't have a decent link in mongo, we find new links with config searchEngineUrl
+        if(this.config.searchEngineUrl) {
+            const searchEngineLink = this._getRandomSearchEngineLink();
+            const searchEngineLinkMongo = await this.mongoManager.getPage(searchEngineLink);
+            // if duckduckgo links is not present in mongo or if it was fetched more than 15 days ago
+            if(
+                !searchEngineLink
+                || Date.now() - (get(searchEngineLinkMongo, 'fetchDate') || new Date() ).getTime() > 15 * 24 * 60 * 60 * 1000
+            )
+                return searchEngineLink;
+        }
 
 
         // if searchEngine link have already been fetch, we get link from mongo without decent score
