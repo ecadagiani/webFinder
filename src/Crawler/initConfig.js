@@ -7,6 +7,8 @@ function initConfig(userConfig, defaultConfig) {
         ...userConfig
     };
 
+    config.domainScoreFunction = eval(config.domainScoreFunction);
+
     function mergeConfigArray(arrayKey, doMerge) {
         config[arrayKey] = doMerge ? concat(userConfig[arrayKey], defaultConfig[arrayKey]) : config[arrayKey];
     }

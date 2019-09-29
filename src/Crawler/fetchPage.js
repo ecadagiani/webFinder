@@ -1,20 +1,15 @@
-const {chain, get} = require('lodash');
-const {getUrlParts} = require('../lib/tools');
+const {chain} = require('lodash');
+const {getUrlParts} = require('@ecadagiani/jstools');
 
 async function fetchLinks(page, {domainWhitelist, crawlInvisibleLink, authorizedLinksExtensions, maxUrlLength, authorizedURIScheme}) {
-    let links = await page.$$eval('a', anchors => {
-
-        function isHidden(el) {
-            return (el.offsetParent === null);
-        }
-
-        return anchors
-            // get href and texts
+    let links = await page.evaluate(() => {// get href and texts
+        const anchors = document.querySelectorAll('a');
+        return Array.from(anchors)
             .filter(anchor => !!anchor.href)
             .map(anchor => ({
                 href: anchor.href,
                 texts: [anchor.textContent],
-                invisible: isHidden(anchor)
+                invisible: (anchor.offsetParent === null)
             }));
     });
 
@@ -54,7 +49,15 @@ async function fetchLinks(page, {domainWhitelist, crawlInvisibleLink, authorized
     return links;
 }
 
+
 async function checkSearchSelectors(page, {searchSelectors}) {
+    try{
+        await Promise.each(searchSelectors, async (searchSelector) =>
+            page.waitForSelector(searchSelector, { timeout: 3000 })
+        );
+    }catch(err) {
+        return false;
+    }
 
     const result = await Promise.map(searchSelectors, async (searchSelector) => {
         return await page.$$eval(searchSelector, el => {
@@ -63,6 +66,7 @@ async function checkSearchSelectors(page, {searchSelectors}) {
     });
     return result.includes(true);
 }
+
 
 async function getPageLanguage(page) {
     return await page.evaluate(() => {

@@ -1,6 +1,9 @@
 {
+    "debug": true,
     "nbCrawler": 1,
+    "start4": "https://support.apple.com/kb/index?page=search&locale=fr_FR",
     "start3": "https://hellomybot.io/fr/bienvenue/",
+    "start2": " https://www.apple.com/fr/education/ipad/",
     "start": "https://www.zendesk.com/apps/directory/?q=&idx=appsIndex&p=0&hFR%5Bproducts%5D%5B0%5D=support&product=support",
     "searchSelectors": [
         "script[src*='zdassets']",
@@ -15,6 +18,7 @@
     },
     "waitForPageLoadTimeout": 20000,
     "crawlInvisibleLink": true,
+    "browserLanguage": "fr-FR",
     "interestLanguage": [
         "fr",
         "fr-FR",
@@ -24,15 +28,20 @@
     "interestTag": [
         "bot",
         "chatbot",
+        "chat",
         "sav",
         "contact",
+        "contacter",
         "faq",
         "savoir",
         "parle",
         "startup",
         "support",
         "produit",
-        "product"
+        "product",
+        "question",
+        "aide",
+        "help"
     ],
     "uninterestingTag": [],
     "interestTagUrl": [
@@ -40,7 +49,22 @@
         "app",
         "product",
         "produit",
-        "contact"
+        "contact",
+        "contacter",
+        "question",
+        "help",
+        "aide",
+        "chat"
     ],
-    "uninterestingTagUrl": []
+    "uninterestingTagUrl": [],
+    "searchTags" : [
+        "support",
+        "produit",
+        "client",
+        "bot",
+        "chabot",
+        "zendesk",
+        "question"
+    ],
+    "maxCombinationSearchTags": 3
 }

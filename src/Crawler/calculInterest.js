@@ -1,24 +1,14 @@
-const {get, find} = require('lodash');
-const {getRndInteger, testArrayOfString} = require('../lib/tools');
+const {testArrayOfString} = require('../lib/tools');
+const {getRndInteger} = require('@ecadagiani/jstools');
 
-function calculInterestScore(url, domain, linkTexts, pageLanguage, domainsUsage, config) {
+function calculInterestScore(url, domain, linkTexts, pageLanguage, config) {
     const {
-        minimumDomainRepetitionCrawlerTrap, domainRepetitionImpactFunction,
         interestLanguage, interestLanguageImpact, uninterestLanguageImpact,
         interestTag, uninterestingTag, interestTagUrl, uninterestingTagUrl,
         interestTagImpact, uninterestingTagImpact, interestTagUrlImpact, uninterestingTagUrlImpact,
         interestRandRange,
     } = config;
     let score = 0;
-
-
-    // domain repetition ( to detect crawler trap )
-    const findDomainUsage = find(domainsUsage, {domain});
-    if(get(findDomainUsage, 'count') > minimumDomainRepetitionCrawlerTrap) {
-        const fn = eval(domainRepetitionImpactFunction);
-        score = fn(findDomainUsage.count, score);
-    }
-
 
     // language
     if( interestLanguage.includes(pageLanguage) )

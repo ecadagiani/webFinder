@@ -13,6 +13,7 @@
   "author": "Eden Cadagiani <e.cadagiani@gmail.com>",
   "license": "MIT",
   "dependencies": {
+    "@ecadagiani/jstools": "^1.1.2",
     "bluebird": "^3.5.5",
     "body-parser": "^1.19.0",
     "cors": "^2.8.5",

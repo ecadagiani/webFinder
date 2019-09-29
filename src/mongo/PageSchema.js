@@ -4,7 +4,7 @@ const Schema = mongoose.Schema;
 
 const PageSchema = new Schema({
     url: {type: String, unique: true, required: true, dropDups: true},
-    domain: String,
+    domain: {type: String, ref: 'Domain'},
     fetched: { type: Boolean, default: false },
     fetching: { type: Boolean, default: false },
     fetchDate: Date,

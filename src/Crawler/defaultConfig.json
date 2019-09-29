@@ -1,4 +1,5 @@
 {
+    "debug": false,
     "nbCrawler": 1,
     "start": "",
     "searchSelectors": [],
@@ -14,9 +15,9 @@
     "maxUrlLength": 800,
     "timeBetweenTwoFetch": 1000,
     "crawlInvisibleLink": false,
-    "minimumDomainRepetitionCrawlerTrap": 50,
-    "domainRepetitionImpactFunction": "(domainUsage, score) => score - Math.floor((domainUsage - 10) / 10)",
+    "domainScoreFunction": "(domain, nbFetch) => domain === 'duckduckgo.com' ? 0 : (nbFetch < 50 ? 0 : Math.floor( (nbFetch-50) * -5 ))",
     "interestMinimumScoreToContinue": 0,
+    "interestMinimumScoreToFetchDb": 0,
     "interestRandRange": {
         "min": 0, "max": 2
     },
@@ -36,6 +37,7 @@
         "shttp"
     ],
 
+    "browserLanguage": "en-US",
     "interestLanguage": [],
     "interestLanguageImpact": 20,
     "uninterestLanguageImpact": -10,
@@ -53,7 +55,8 @@
         "google.com",
         "google.fr",
         "pinterest.com",
-        "leboncoin.fr"
+        "leboncoin.fr",
+        "smartadserver.com"
     ],
     "mergeDomainWhitelist": true,
 
@@ -73,7 +76,8 @@
         "filter",
         "limit",
         "order",
-        "sort"
+        "sort",
+        "add"
     ],
     "mergeUninterestTag": true,
     "uninterestingTagImpact": -1,
@@ -104,8 +108,14 @@
         "sessionid",
         "session_id",
         "SID",
-        "PHPSESSID"
+        "PHPSESSID",
+        "add"
     ],
     "mergeUninterestTagUrl": true,
-    "uninterestingTagUrlImpact": -2
+    "uninterestingTagUrlImpact": -2,
+
+    "searchTags" : [
+        "foo", "bar", "crawler"
+    ],
+    "maxCombinationSearchTags": 0
 }

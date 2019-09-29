@@ -1,8 +1,9 @@
 const puppeteer = require('puppeteer');
 const {get, chain, uniq} = require('lodash');
+const {URL} = require('url');
 
 const MongoManager = require('../mongo/MongoManager');
-const {wait} = require('../lib/tools');
+const {wait, getRndInteger, drawWithoutDuplicate} = require('@ecadagiani/jstools');
 const {checkSearchSelectors, fetchLinks, getPageLanguage} = require('./fetchPage');
 const {calculInterestScore} = require('./calculInterest');
 const {initConfig} = require('./initConfig');
@@ -22,9 +23,9 @@ class Crawler {
     async init() {
         await this.stop();
 
-        await Crawler.initBrowser();
+        await Crawler.initBrowser(this.config.browserLanguage);
         this.page = await Crawler.browser.newPage();
-        this.mongoManager = new MongoManager(this.config.mongo);
+        this.mongoManager = new MongoManager(this.config);
         this.mongoManager.init();
         this.breakLoop = false;
         this.log('initialised');
@@ -42,16 +43,16 @@ class Crawler {
     }
 
 
-    async start() {
+    start() {
         this.log('started');
         if(get(this.config, 'start'))
-            await this.loop(this.config.start);
+            this._loop(this.config.start);
         else
             this.error('no start link in config - you can add "start": "mylink.com" to config file');
     }
 
 
-    async loop(url) {
+    async _loop(url) {
         const time = Date.now();
         if(this.breakLoop)
             return;
@@ -68,43 +69,30 @@ class Crawler {
         if(timeToFetch < this.config.timeBetweenTwoFetch)
             await wait(this.config.timeBetweenTwoFetch - timeToFetch);
 
-        this.loop(newUrl);
+        this._loop(newUrl);
     }
 
 
     async _tryToFetchPage(url, errorCount = 0) {
-        this.log(`try to fetch - ${url}`);
+        this.log(`fetch - ${url}`);
         let fetchedPages = [];
         try{
             fetchedPages = await this.fetchPage(url);
         }catch (err) {
+            if(this.config.debug)
+                throw err;
             if(errorCount < 2) {
-                this.logError(`error ${errorCount + 1} on fetch, crawler will try again  - ${err.message}`);
+                this.logError(`error on fetch (${errorCount + 1}) - ${err.message}`);
                 await this.init();
                 return await this._tryToFetchPage(url, errorCount + 1);
             }
 
-            this.logError(`error ${errorCount + 1} on fetch - ${err.message}`);
+            this.logError(`error on fetch (${errorCount + 1}) - ${err.message}`);
             await this.mongoManager.createOrUpdatePage({
                 url, error: true, fetched: false, fetching: false, errorMessage: err.toString()
             });
         }
         return fetchedPages || [];
-    }
-
-    async _tryToGetNewLink(previousFetchedPage, errorCount = 0) {
-        let url = null;
-        try{
-            url = await this._getNewLink(previousFetchedPage);
-        }catch(err) {
-            if(errorCount < 2) {
-                this.logError(`error ${errorCount + 1} on get new link, crawler will try again  - ${err.message}`);
-                await this.init();
-                return await this._tryToGetNewLink(previousFetchedPage, errorCount + 1);
-            }
-            throw this.error('error on get next link - ', err.message);
-        }
-        return url;
     }
 
 
@@ -113,7 +101,7 @@ class Crawler {
         try{
             await Promise.all([
                 this.mongoManager.createOrUpdatePage({url, fetching: true}),
-                this.page.waitForNavigation({timeout: this.config.waitForPageLoadTimeout}),
+                this.page.waitForNavigation({ waitUntil: ['load', 'domcontentloaded'], timeout: this.config.waitForPageLoadTimeout }),
                 this.page.goto(url),
             ]);
         }catch(err) {
@@ -134,14 +122,10 @@ class Crawler {
         });
         let {match = false, language, links = []} = pageData;
 
-        // get domainsUsage
-        const domains = uniq(links.map(x => x.domain));
-        const domainUsage = await this.mongoManager.getDomainsUsage(domains);
-
         // set links score
         links = await Promise.map(links, link => ({
             ...link,
-            interestScore: calculInterestScore(link.href, link.domain, link.texts, language, domainUsage, this.config),
+            interestScore: calculInterestScore(link.href, link.domain, link.texts, language, this.config),
         }));
 
         // save all data
@@ -163,8 +147,27 @@ class Crawler {
     }
 
 
+    async _tryToGetNewLink(previousFetchedPage, errorCount = 0) {
+        let url = null;
+        try{
+            url = await this._getNewLink(previousFetchedPage);
+        }catch(err) {
+            if(this.config.debug)
+                throw err;
+            if(errorCount < 2) {
+                this.logError(`error ${errorCount + 1} on get new link, crawler will try again  - ${err.message}`);
+                await this.init();
+                return await this._tryToGetNewLink(previousFetchedPage, errorCount + 1);
+            }
+            throw this.error('error on get next link - ', err.message);
+        }
+        return url;
+    }
+
+
     async _getNewLink(previousFetchedPage = []) {
-        const futurPage = chain(previousFetchedPage)
+        let futurPage = null;
+        futurPage = chain(previousFetchedPage)
             .filter(page =>
                 !page.fetched
                 && !page.fetching
@@ -174,17 +177,45 @@ class Crawler {
             .head()
             .value();
 
+        // if we have fetched a link with a correct score (interestMinimumScoreToContinue), we return this
         if(futurPage)
             return futurPage.url;
 
-        // we have zero valid links, we get new link from mongo
-        const page = await this.mongoManager.getBestPageToFetch();
-        if(page)
-            return page.url;
+        // if we have zero valid links, we get new link from mongo, but with a decent score (interestMinimumScoreToFetchDb)
+        futurPage = await this.mongoManager.getBestPageToFetch(this.config.interestMinimumScoreToFetchDb);
+        if(futurPage)
+            return futurPage.url;
 
-        // todo mettre en place la recherche sur google par mot clé
+        // if we don't have a decent link in mongo, we find new links with duckduckgo
+        const ddgLink = this._getRandomDuckDuckGoSearchLink();
+        const ddgLinkMongo = await this.mongoManager.getPage(ddgLink);
+        // if duckduckgo links is not present in mongo or if it was fetched more than 15 days ago
+        if(
+            !ddgLinkMongo
+            || Date.now() - (get(ddgLinkMongo, 'fetchDate') || new Date() ).getTime() > 15 * 24 * 60 * 60 * 1000
+        )
+            return ddgLink;
+
+        // if duckduckgo link have already been fetch, we get link from mongo without decent score
+        futurPage = await this.mongoManager.getBestPageToFetch();
+        if(futurPage)
+            return futurPage.url;
+
+        return null;
     }
 
+    _getRandomDuckDuckGoSearchLink() {
+        const {searchTags, maxCombinationSearchTags} = this.config;
+        const nbTagsToDraw = getRndInteger(
+            1,
+            searchTags.length < maxCombinationSearchTags ? searchTags.length : maxCombinationSearchTags
+        );
+
+        const resTags = drawWithoutDuplicate(searchTags, nbTagsToDraw);
+        const ddgUrl = new URL('https://duckduckgo.com');
+        ddgUrl.searchParams.set('q', resTags.join(' '));
+        return ddgUrl.href;
+    }
 
 
     log(...texts) {
@@ -210,15 +241,18 @@ class Crawler {
 Crawler.crawlerList = [];
 Crawler.__browser = null;
 
-Crawler.initBrowser = async () => {
+Crawler.initBrowser = async (browserLanguage = 'en-US') => {
+    const browserOptions = {
+        ignoreHTTPSErrors: true,
+        headless: true,
+        args: [`--lang=${browserLanguage}`]
+    };
+
     if(!Crawler.__browser)
-        Crawler.__browser = await puppeteer.launch({
-            ignoreHTTPSErrors: true,
-            headless: true,
-        });
+        Crawler.__browser = await puppeteer.launch(browserOptions);
     if(!Crawler.__browser.isConnected()) {
         await Crawler.closeBrowser();
-        Crawler.__browser = await puppeteer.launch();
+        Crawler.__browser = await puppeteer.launch(browserOptions);
     }
 };
 

@@ -13,7 +13,6 @@ app.use(bodyParser.json());
 app.use(bodyParser.text());
 app.use(cors({ 'origin': '*' }));
 
-
 app.listen(process.env.PORT, async () => {
     console.log(`launch ${config.nbCrawler} Crawlers`);
     await Promise.map(new Array(config.nbCrawler), async () => {
