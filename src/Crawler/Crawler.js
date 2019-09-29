@@ -119,8 +119,13 @@ class Crawler {
         }
         this.debuglogTimeMessage('time to navigate:', 'fetchPage');
 
+        // wait for body appear, and min 1 sec
+        await Promise.all([
+            this.page.waitForSelector('body'),
+            wait(1000),
+        ]);
+
         // fetch DOM data
-        await this.page.waitForSelector('body');
         let pageData = await Promise.props({
             match: await checkSearchSelectors(this.page, this.config),
             language: await getPageLanguage(this.page),

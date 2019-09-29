@@ -1,13 +1,11 @@
 {
     "debug": true,
     "nbCrawler": 1,
-    "start3": "https://support.apple.com/kb/index?page=search&locale=fr_FR",
     "start4": " https://www.apple.com/fr/education/ipad/",
+    "start3": "https://support.apple.com/kb/index?page=search&locale=fr_FR",
     "start2": "https://hellomybot.io/fr/bienvenue/",
     "start": "https://www.zendesk.com/apps/directory/?q=&idx=appsIndex&p=0&hFR%5Bproducts%5D%5B0%5D=support&product=support",
-    "searchSelectors": [
-        "script[src*='zdassets']"
-    ],
+    "searchSelectors": [ "iframe.zEWidget-launcher" ],
     "searchFunction": "() => window.hasOwnProperty('$zopim')",
     "mongo": {
         "host": "web_finder_mongo",

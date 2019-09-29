@@ -65,8 +65,7 @@ async function checkSearchSelectors(page, {searchSelectors, searchFunction: sear
         }
         return false;
     }, searchSelectors, searchFunctionString);
-    console.log(searchFunctionString, result)
-    return result;
+    return !!result;
 }
 
 
