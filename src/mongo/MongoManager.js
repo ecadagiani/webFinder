@@ -7,40 +7,35 @@ const {getDomain} = require('../lib/tools');
 mongoose.set('useUnifiedTopology', true);
 mongoose.set('useFindAndModify', false);
 
-class MongoManager { // todo make singleton
+class MongoManager {
     constructor({mongo: {host, port, database, username, password}, domainScoreFunction}) {
         this.config = { host, port, database, username, password, domainScoreFunction };
-        this.db = null;
+        this.__connection = null;
+        this.__PageModel = null;
+        this.__DomainModel = null;
     }
 
-    init() {
-        this.connect();
+    async init() {
+        await this.connect();
+        this.__PageModel = this.__connection.model('Page', PageSchema);
+        this.__DomainModel = this.__connection.model('Domain', DomainSchema);
     }
 
-    connect() {
-        this.db = mongoose.connection;
-        this.db.on('error', this.__onError);
-        this.db.on('open', this.__onConnect);
-
+    async connect() {
         const {host, port, database, username, password} = this.config;
         const mongoUri = `mongodb://${username}:${password}@${host}:${port}/${database}`;
-        mongoose.connect(mongoUri, {useNewUrlParser: true, useCreateIndex: true});
+        const options = {useNewUrlParser: true, useCreateIndex: true};
+        this.__connection = await mongoose.createConnection(mongoUri, options);
     }
 
     close() {
-        mongoose.connection.close();
+        this.__connection.close();
     }
-
-    __onError(err) {
-    }
-    __onConnect() {
-    }
-
 
     async createOrUpdateDomain({domain, score = null, nbFetch = null}) {
         let domainToSave = await this.getDomain(domain);
         if(!domainToSave)
-            domainToSave = new DomainSchema();
+            domainToSave = new this.__DomainModel();
         domainToSave._id = domain;
         domainToSave.domain = domain;
         if(score !== null) domainToSave.score = score;
@@ -52,7 +47,7 @@ class MongoManager { // todo make singleton
     async _addToNbFetchToDomain(domain, nbFetch = 1) {
         let domainToSave = await this.getDomain(domain);
         if(!domainToSave)
-            domainToSave = new DomainSchema();
+            domainToSave = new this.__DomainModel();
         domainToSave._id = domain;
         domainToSave.domain = domain;
         domainToSave.nbFetch = (domainToSave.nbFetch || 0) + nbFetch;
@@ -63,7 +58,7 @@ class MongoManager { // todo make singleton
     }
 
     async getDomain(domain) {
-        return await DomainSchema.findById(domain);
+        return this.__DomainModel.findById(domain);
     }
 
     async createOrUpdatePage({
@@ -88,7 +83,7 @@ class MongoManager { // todo make singleton
 
         let page = await this.getPage(url);
         if(!page)
-            page = new PageSchema();
+            page = new this.__PageModel();
 
         if(saveDomain && fetched && !page.fetched)
             await this._addToNbFetchToDomain(domain);
@@ -110,7 +105,7 @@ class MongoManager { // todo make singleton
     }
 
     async getPage(url) {
-        return await PageSchema.findOne({url});
+        return this.__PageModel.findOne({url});
     }
 
     async getBestPageToFetch(minimumScore = null) {
@@ -171,7 +166,7 @@ class MongoManager { // todo make singleton
         query.push({
             '$limit': 1
         });
-        const res = await PageSchema.aggregate(query).exec();
+        const res = await this.__PageModel.aggregate(query).exec();
         return head(res);
     }
 

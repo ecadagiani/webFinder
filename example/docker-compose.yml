@@ -1,0 +1,44 @@
+version: "3.2"
+services:
+  web_finder_mongo:
+    image: mongo:latest
+    restart: always
+    logging:
+      driver: none
+    volumes:
+      - ./mongo:/docker-entrypoint-initdb.d:ro
+      - web_finder_mongo_volumes:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: webfinder
+    ports:
+      - 27018:27017
+    networks:
+      default:
+      web_finder_internal:
+        aliases:
+          - web_finder_mongo
+
+  web_finder:
+    build: .
+    cap_add:
+      - SYS_ADMIN
+    volumes:
+      - .:/app
+      - web_finder_node_volumes:/app/node_modules
+    environment:
+      PORT: 3030
+    networks:
+      default:
+      web_finder_internal:
+        aliases:
+          - web_finder
+
+volumes:
+  web_finder_mongo_volumes:
+  web_finder_node_volumes:
+
+networks:
+  default:
+  web_finder_internal:

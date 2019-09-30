@@ -38,7 +38,7 @@ class Crawler { // todo add a system to have a js plugin file to handle event li
 
         this.page = await Crawler.browser.newPage();
         this.mongoManager = new MongoManager(this.config);
-        this.mongoManager.init();
+        await this.mongoManager.init();
         this.__setStatus(Crawler.statusType.initialised);
     }
 
@@ -110,7 +110,8 @@ class Crawler { // todo add a system to have a js plugin file to handle event li
         if(timeToFetch < this.config.timeBetweenTwoFetch)
             await wait(this.config.timeBetweenTwoFetch - timeToFetch);
 
-        this._loop(newUrl);
+        if(this.config.loop)
+            this._loop(newUrl);
     }
 
 
