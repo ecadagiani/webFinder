@@ -23,4 +23,13 @@ app.listen(process.env.PORT, async () => {
     });
 
     console.log('All Crawlers are launched');
+
+    /*
+    setTimeout(async () => {
+        await Promise.map(crawlers, crawler => crawler.stop());
+        console.log('crawlers stopped');
+        await Crawler.closeBrowser();
+        console.log('browser stopped');
+    }, 5000);
+    */
 });

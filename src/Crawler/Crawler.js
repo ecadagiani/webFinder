@@ -9,18 +9,26 @@ const {initConfig} = require('./initConfig');
 const defaultConfig = require('./defaultConfig');
 const {basicNavigationErrorCode} = require('./crawlerconstants');
 
-class Crawler {
+class Crawler { // todo add a system to have a js plugin file to handle event like a match is discover
     constructor(config) {
         this.id = Crawler.crawlerList.push(this);
         this.config = initConfig(config, defaultConfig);
         this.page = null;
         this.mongoManager = null;
-        this.breakLoop = false;
         this.__time = {};
+        this.__status = Crawler.statusType.initial;
     }
 
+    get status() {
+        return this.__status;
+    }
+    __setStatus(status) {
+        this.__status = status;
+        this.log(status);
+    }
 
     async init() {
+        this.__setStatus(Crawler.statusType.initialising);
         await Crawler.initBrowser(this.config.browserLanguage);
 
         if(this.page && !this.page.isClosed())
@@ -31,45 +39,58 @@ class Crawler {
         this.page = await Crawler.browser.newPage();
         this.mongoManager = new MongoManager(this.config);
         this.mongoManager.init();
-        this.breakLoop = false;
-        this.log('initialised');
+        this.__setStatus(Crawler.statusType.initialised);
+    }
+
+    async __runningReinit() {
+        await Crawler.initBrowser(this.config.browserLanguage);
+        if(this.page && !this.page.isClosed())
+            await this.page.close();
+        this.page = await Crawler.browser.newPage();
     }
 
 
-    // todo make a better stop system
     async stop() {
-        this.log('stopping');
-        this.breakLoop = true;
+        this.__setStatus(Crawler.statusType.stopping);
+        while (this.__status !== Crawler.statusType.stopped) {
+            await wait(50);
+        }
+        return true;
     }
 
-    async _stopNext() {
+    async __stopNext() {
+        if(this.__isStopNextStarted) return;
+        this.__isStopNextStarted = true;
         if(this.page && !this.page.isClosed())
             await this.page.close();
         this.page = null;
         if(this.mongoManager)
             this.mongoManager.close();
         this.mongoManager = null;
-        this.log('stopped');
+        this.__setStatus(Crawler.statusType.stopped);
+        this.__isStopNextStarted = false;
     }
 
-    _doIhaveToStop() {
-        if(!this.breakLoop) return false;
-        this._stopNext();
+    __doIhaveToStop() {
+        if(this.__status !== Crawler.statusType.stopping)
+            return false;
+        if(this.__status === Crawler.statusType.stopping)
+            this.__stopNext();
         return true;
     }
 
 
     start() {
-        this.log('started');
-        if(get(this.config, 'start'))
+        if(get(this.config, 'start')) {
+            this.__setStatus(Crawler.statusType.running);
             this._loop(this.config.start);
-        else
+        }else
             this.error('no start link in config - you can add "start": "mylink.com" to config file');
     }
 
 
     async _loop(url) {
-        if(this._doIhaveToStop()) return;
+        if(this.__doIhaveToStop()) return;
 
         this.reinitTimeMessage('loop');
         this.reinitTimeMessage('internLoopFunction');
@@ -79,6 +100,8 @@ class Crawler {
 
         const fetchedPages = await this._tryToFetchPage(url);
         this.debuglogTimeMessage('time to tryToFetchPage', 'internLoopFunction');
+
+        if(this.__doIhaveToStop()) return;
 
         const newUrl = await this._tryToGetNewLink(fetchedPages);
         this.debuglogTimeMessage('time to tryToGetNewLink:', 'internLoopFunction');
@@ -92,13 +115,11 @@ class Crawler {
 
 
     async _tryToFetchPage(url, errorCount = 0) {
-        if(this._doIhaveToStop()) return;
         this.log(`fetch - ${url}`);
         let fetchedPages = [];
         try{
             fetchedPages = await this.fetchPage(url);
         }catch (err) {
-            if(this._doIhaveToStop()) return;
             if(this.config.throwError) throw err;
 
             if(err.code === 6001) { // Domain recovery failed
@@ -108,7 +129,7 @@ class Crawler {
             if(errorCount < 2) {
                 this.logError(`error on fetch (${errorCount + 1}) - ${err.message}`);
                 this.log('will try again');
-                await this.init();
+                await this.__runningReinit();
                 return await this._tryToFetchPage(url, errorCount + 1);
             }
 
@@ -163,8 +184,6 @@ class Crawler {
         }));
         this.debuglogTimeMessage('time to calculate links score:', 'fetchPage');
 
-        if(this._doIhaveToStop()) return;
-
         // save all data
         const res =  await Promise.map([
             {
@@ -187,17 +206,15 @@ class Crawler {
 
 
     async _tryToGetNewLink(previousFetchedPage, errorCount = 0) {
-        if(this._doIhaveToStop()) return;
         let url = null;
         try{
             url = await this._getNewLink(previousFetchedPage);
         }catch(err) {
-            if(this._doIhaveToStop()) return;
+            if(this.__doIhaveToStop()) return;
             if(this.config.throwError)
                 throw err;
             if(errorCount < 2) {
-                this.logError(`error ${errorCount + 1} on get new link, crawler will try again  - ${err.message}`);
-                await this.init();
+                await this.__runningReinit();
                 return await this._tryToGetNewLink(previousFetchedPage, errorCount + 1);
             }
             throw this.error('error on get next link - ', err.message);
@@ -357,6 +374,14 @@ Object.defineProperty(
     }
 );
 
+Crawler.statusType = {
+    initial: 'initial',
+    initialising: 'initialising',
+    initialised: 'initialised',
+    running: 'running',
+    stopping: 'stopping',
+    stopped: 'stopped',
+};
 
 Crawler.prototype.__browser = null;
 
