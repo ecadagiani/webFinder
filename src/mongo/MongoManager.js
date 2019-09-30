@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const {head} = require('lodash');
+const {wait} = require('@ecadagiani/jstools');
 const PageSchema = require('./PageSchema');
 const DomainSchema = require('./DomainSchema');
 const {getDomain} = require('../lib/tools');
@@ -22,10 +23,27 @@ class MongoManager {
     }
 
     async connect() {
-        const {host, port, database, username, password} = this.config;
-        const mongoUri = `mongodb://${username}:${password}@${host}:${port}/${database}`;
-        const options = {useNewUrlParser: true, useCreateIndex: true};
-        this.__connection = await mongoose.createConnection(mongoUri, options);
+        const __connect = async (errorCount = 0) => new Promise( (resolve, reject) => {
+            const {host, port, database, username, password} = this.config;
+            const mongoUri = `mongodb://${username}:${password}@${host}:${port}/${database}`;
+            const options = {useNewUrlParser: true, useCreateIndex: true};
+            const connection = mongoose.createConnection(mongoUri, options);
+            connection.catch(async err => {
+                if(errorCount >= 3)
+                    reject(err);
+                else{
+                    await wait(4000);
+                    __connect(errorCount + 1)
+                        .then(resolve)
+                        .catch(reject);
+                }
+            });
+            connection.once('open', function () {
+                resolve(connection);
+            });
+        });
+        this.__connection = await __connect();
+
     }
 
     close() {

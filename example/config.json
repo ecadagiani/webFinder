@@ -1,12 +1,5 @@
 {
-    "debug": true,
-    "throwError": false,
-    "loop": true,
-    "nbCrawler": 2,
-    "start4": " https://www.apple.com/fr/education/ipad/",
-    "start3": "https://support.apple.com/kb/index?page=search&locale=fr_FR",
-    "start5": " https://barcelona.lafrenchtech.com/92/startup-du-mois-fevrier18",
-    "start2": "https://hellomybot.io/fr/bienvenue/",
+    "nbCrawler": 1,
     "start": "https://www.zendesk.com/apps/directory/?q=&idx=appsIndex&p=0&hFR%5Bproducts%5D%5B0%5D=support&product=support",
     "searchSelectors": [ "iframe.zEWidget-launcher" ],
     "searchFunction": "() => window.hasOwnProperty('$zopim')",

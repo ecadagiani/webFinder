@@ -21,7 +21,9 @@ services:
           - web_finder_mongo
 
   web_finder:
-    build: .
+    build:
+      context: .
+      dockerfile: dev.dockerfile
     cap_add:
       - SYS_ADMIN
     volumes:

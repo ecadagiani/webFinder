@@ -3,8 +3,6 @@ services:
   web_finder_mongo:
     image: mongo:latest
     restart: always
-    logging:
-      driver: none
     volumes:
       - ./mongo:/docker-entrypoint-initdb.d:ro
       - web_finder_mongo_volumes:/data/db
@@ -21,12 +19,12 @@ services:
           - web_finder_mongo
 
   web_finder:
-    build: .
+    image: ecadagiani/webfinder:latest
+    restart: always
     cap_add:
       - SYS_ADMIN
     volumes:
-      - .:/app
-      - web_finder_node_volumes:/app/node_modules
+      - ./config.json:/app/config.json
     environment:
       PORT: 3030
     networks:
@@ -37,7 +35,6 @@ services:
 
 volumes:
   web_finder_mongo_volumes:
-  web_finder_node_volumes:
 
 networks:
   default:
