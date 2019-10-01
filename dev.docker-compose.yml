@@ -27,7 +27,8 @@ services:
     cap_add:
       - SYS_ADMIN
     volumes:
-      - .:/app
+      - ./src:/app/src
+      - ./dev.config.json:/app/config.json
       - web_finder_node_volumes:/app/node_modules
     environment:
       PORT: 3030

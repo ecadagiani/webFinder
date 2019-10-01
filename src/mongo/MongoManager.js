@@ -23,25 +23,23 @@ class MongoManager {
     }
 
     async connect() {
-        const __connect = async (errorCount = 0) => new Promise( (resolve, reject) => {
-            const {host, port, database, username, password} = this.config;
-            const mongoUri = `mongodb://${username}:${password}@${host}:${port}/${database}`;
-            const options = {useNewUrlParser: true, useCreateIndex: true};
-            const connection = mongoose.createConnection(mongoUri, options);
-            connection.catch(async err => {
+        const {host, port, database, username, password} = this.config;
+        const mongoUri = `mongodb://${username}:${password}@${host}:${port}/${database}`;
+        const options = {useNewUrlParser: true, useCreateIndex: true};
+
+        const __connect = async (errorCount = 0) => {
+            try{
+                const connection = await mongoose.createConnection(mongoUri, options);
+                return connection;
+            }catch (err) {
                 if(errorCount >= 3)
-                    reject(err);
+                    throw err;
                 else{
                     await wait(4000);
-                    __connect(errorCount + 1)
-                        .then(resolve)
-                        .catch(reject);
+                    return await __connect(errorCount + 1);
                 }
-            });
-            connection.once('open', function () {
-                resolve(connection);
-            });
-        });
+            }
+        };
         this.__connection = await __connect();
 
     }

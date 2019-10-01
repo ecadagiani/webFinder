@@ -1,17 +1,24 @@
 {
   "name": "web-finder",
-  "version": "1.0.0",
-  "description": "",
+  "version": "1.0.1",
+  "author": "Eden Cadagiani <e.cadagiani@gmail.com>",
+  "description": "WebFinder is a highly configurable crawler on puppeteer to find specific page on the web.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type" : "git",
+    "url" : "https://github.com/ecadagiani/webFinder"
+  },
   "main": "src/app.js",
   "engines": {
     "node": ">10.0.0"
   },
   "scripts": {
     "start": "node src/app.js",
-    "startdev": "nodemon src/app.js"
+    "startdev": "nodemon src/app.js",
+    "start-docker-dev": "docker-compose -f dev.docker-compose.yml up",
+    "down-docker-dev": "docker-compose -f dev.docker-compose.yml down -v",
+    "build-docker-dev": "docker-compose -f dev.docker-compose.yml build"
   },
-  "author": "Eden Cadagiani <e.cadagiani@gmail.com>",
-  "license": "MIT",
   "dependencies": {
     "@ecadagiani/jstools": "^1.1.2",
     "bluebird": "^3.5.5",

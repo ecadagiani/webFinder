@@ -4,6 +4,7 @@ const cors = require('cors');
 global.Promise = require('bluebird');
 
 const Crawler = require('./Crawler/Crawler');
+// eslint-disable-next-line node/no-missing-require
 const config = require('../config');
 
 
