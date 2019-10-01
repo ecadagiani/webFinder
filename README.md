@@ -22,4 +22,4 @@ touching the crawler code
 - **Eden Cadagiani** e.cadagiani@gmail.com
 
 ## License
-This project is licensed under the Apache 2.0 - see the [LICENSE.md](LICENSE.md) file for details
+This project is licensed under the Apache 2.0 - see the [LICENSE.md](LICENSE) file for details
