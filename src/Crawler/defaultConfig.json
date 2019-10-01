@@ -11,7 +11,9 @@
         "port": "",
         "database": "",
         "username": "",
-        "password": ""
+        "password": "",
+        "maxConnectionTry": 3,
+        "timeBetweenEachConnectionTry": 4000
     },
 
     "waitForPageLoadTimeout": 30000,

@@ -1,8 +1,7 @@
 {
     "nbCrawler": 1,
-    "start": "https://www.zendesk.com/apps/directory/?q=&idx=appsIndex&p=0&hFR%5Bproducts%5D%5B0%5D=support&product=support",
-    "searchSelectors": [ "iframe.zEWidget-launcher" ],
-    "searchFunction": "() => window.hasOwnProperty('$zopim')",
+    "start": "https://fr.reactjs.org/",
+    "searchFunction": "() => window.hasOwnProperty('__REACT_DEVTOOLS_GLOBAL_HOOK__')",
     "mongo": {
         "host": "web_finder_mongo",
         "port": "27017",
@@ -10,68 +9,16 @@
         "username": "crawler",
         "password": "password"
     },
-    "waitForPageLoadTimeout": 20000,
-    "crawlInvisibleLink": true,
-    "browserLanguage": "fr-FR",
-    "interestLanguage": [
-        "fr",
-        "fr-FR",
-        "FR"
-    ],
-    "domainWhitelist": [
-        "youtube.com",
-        "youtu.be",
-        "leboncoin.fr"
-    ],
-    "interestTag": [
-        "bot",
-        "chatbot",
-        "chat",
-        "sav",
-        "contact",
-        "contacter",
-        "faq",
-        "savoir",
-        "parle",
-        "startup",
-        "support",
-        "produit",
-        "product",
-        "question",
-        "aide",
-        "help",
-        "information",
-        "zopim"
-    ],
-    "uninterestingTag": [],
-    "interestTagUrl": [
-        "support",
-        "app",
-        "product",
-        "produit",
-        "contact",
-        "contacter",
-        "question",
-        "help",
-        "aide",
-        "chat",
-        "zopim"
-    ],
-    "uninterestingTagUrl": [],
+    "waitForPageLoadTimeout": 15000,
+    "interestMinimumScoreToContinue": -10,
+    "interestMinimumScoreToFetchDb": -50,
+    "interestRandRange": {
+        "min": 0, "max": 10
+    },
+    "browserLanguage": "en-US",
+    "interestTag": [ "react", "dev" ],
     "searchTags" : [
-        "support",
-        "produit",
-        "client",
-        "bot",
-        "chabot",
-        "zendesk",
-        "question",
-        "information",
-        "zopim",
-        "assistance",
-        "aide",
-        "livechat",
-        "direct"
+        "react", "dev", "dom", "npm", "web"
     ],
-    "maxCombinationSearchTags": 5
+    "maxCombinationSearchTags": 3
 }

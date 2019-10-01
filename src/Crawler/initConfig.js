@@ -4,7 +4,11 @@ const {concat, chain} = require('lodash');
 function initConfig(userConfig, defaultConfig) {
     const config = {
         ...defaultConfig,
-        ...userConfig
+        ...userConfig,
+        mongo: {
+            ...defaultConfig.mongo,
+            ...userConfig.mongo,
+        }
     };
 
     config.domainScoreFunction = eval(config.domainScoreFunction);

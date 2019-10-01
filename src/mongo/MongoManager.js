@@ -9,8 +9,8 @@ mongoose.set('useUnifiedTopology', true);
 mongoose.set('useFindAndModify', false);
 
 class MongoManager {
-    constructor({mongo: {host, port, database, username, password}, domainScoreFunction}) {
-        this.config = { host, port, database, username, password, domainScoreFunction };
+    constructor({mongo, domainScoreFunction}) {
+        this.config = { ...mongo, domainScoreFunction };
         this.__connection = null;
         this.__PageModel = null;
         this.__DomainModel = null;
@@ -23,7 +23,7 @@ class MongoManager {
     }
 
     async connect() {
-        const {host, port, database, username, password} = this.config;
+        const {host, port, database, username, password, maxConnectionTry, timeBetweenEachConnectionTry} = this.config;
         const mongoUri = `mongodb://${username}:${password}@${host}:${port}/${database}`;
         const options = {useNewUrlParser: true, useCreateIndex: true};
 
@@ -32,10 +32,10 @@ class MongoManager {
                 const connection = await mongoose.createConnection(mongoUri, options);
                 return connection;
             }catch (err) {
-                if(errorCount >= 3)
+                if(errorCount >= maxConnectionTry)
                     throw err;
                 else{
-                    await wait(4000);
+                    await wait(timeBetweenEachConnectionTry);
                     return await __connect(errorCount + 1);
                 }
             }
