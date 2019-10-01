@@ -6,7 +6,7 @@ services:
     logging:
       driver: none
     volumes:
-      - ./mongo:/docker-entrypoint-initdb.d:ro
+      - ./dev.mongo-init.js:/docker-entrypoint-initdb.d/init.js:ro
       - web_finder_mongo_volumes:/data/db
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
