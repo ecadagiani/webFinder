@@ -19,7 +19,7 @@ page on the web.
 touching the crawler code
 
 ## Authors
-- **Eden Cadagiani** e.cadagiani@gmail.com
+- **Eden Cadagiani** ([HelloMyBot](https://hellomybot.io/fr/bienvenue/))
 
 ## License
-This project is licensed under the Apache 2.0 - see the [LICENSE.md](LICENSE) file for details
+This project is licensed under the Apache 2.0 - see the [LICENSE](LICENSE) file for details

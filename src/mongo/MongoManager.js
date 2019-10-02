@@ -9,17 +9,20 @@ mongoose.set('useUnifiedTopology', true);
 mongoose.set('useFindAndModify', false);
 
 class MongoManager {
-    constructor({mongo, domainScoreFunction}) {
-        this.config = { ...mongo, domainScoreFunction };
+    constructor({mongo, domainScoreFunction, debug}, id) {
+        this.config = { ...mongo, domainScoreFunction, debug };
+        this.id = id;
         this.__connection = null;
         this.__PageModel = null;
         this.__DomainModel = null;
     }
 
     async init() {
+        this.debugLog('initialising');
         await this.connect();
         this.__PageModel = this.__connection.model('Page', PageSchema);
         this.__DomainModel = this.__connection.model('Domain', DomainSchema);
+        this.debugLog('initialised');
     }
 
     async connect() {
@@ -28,6 +31,7 @@ class MongoManager {
         const options = {useNewUrlParser: true, useCreateIndex: true};
 
         const __connect = async (errorCount = 0) => {
+            this.debugLog(`try to connect to ${mongoUri}`);
             try{
                 const connection = await mongoose.createConnection(mongoUri, options);
                 return connection;
@@ -35,17 +39,20 @@ class MongoManager {
                 if(errorCount >= maxConnectionTry)
                     throw err;
                 else{
+                    this.debugLog(`connection error: ${err.message}`);
                     await wait(timeBetweenEachConnectionTry);
                     return await __connect(errorCount + 1);
                 }
             }
         };
         this.__connection = await __connect();
+        this.debugLog(`connected to ${host}:${port}/${database}`);
 
     }
 
     close() {
         this.__connection.close();
+        this.debugLog('connection closed');
     }
 
     async createOrUpdateDomain({domain, score = null, nbFetch = null}) {
@@ -186,6 +193,14 @@ class MongoManager {
         return head(res);
     }
 
+    log(...texts) {
+        const date = new Date();
+        console.log(`[${date.toISOString()}] MongoManager ${this.id}: `, ...texts);
+    }
+    debugLog(...texts) {
+        if(this.config.debug)
+            this.log(...texts);
+    }
 }
 
 module.exports = MongoManager;

@@ -37,7 +37,7 @@ class Crawler { // todo add a system to have a js plugin file to handle event li
             this.mongoManager.close();
 
         this.page = await Crawler.browser.newPage();
-        this.mongoManager = new MongoManager(this.config);
+        this.mongoManager = new MongoManager(this.config, this.id);
         await this.mongoManager.init();
         this.__setStatus(Crawler.statusType.initialised);
     }

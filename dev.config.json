@@ -2,7 +2,7 @@
     "debug": true,
     "throwError": false,
     "loop": true,
-    "nbCrawler": 1,
+    "nbCrawler": 3,
     "start": "https://hellomybot.io/fr/bienvenue/",
     "mongo": {
         "host": "web_finder_mongo",
