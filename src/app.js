@@ -19,7 +19,7 @@ app.listen(process.env.PORT, async () => {
     const crawlers = await Promise.map(new Array(config.nbCrawler), async () => {
         const crawler = new Crawler(config);
         await crawler.init();
-        crawler.start();
+        await crawler.start();
         return crawler;
     });
 

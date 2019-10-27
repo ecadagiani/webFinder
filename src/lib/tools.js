@@ -6,6 +6,16 @@ function getDomain(url) {
     return urlParts.domain;
 }
 
+function promiseFunction(func) {
+    return (...args) => {
+        return new Promise(async resolve => {
+            const res = await func(...args);
+            resolve(res);
+        });
+    };
+}
+
 module.exports = {
-    getDomain
+    getDomain,
+    promiseFunction
 };

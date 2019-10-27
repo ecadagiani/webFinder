@@ -5,8 +5,8 @@
   "description": "WebFinder is a highly configurable crawler on puppeteer to find specific page on the web.",
   "license": "Apache-2.0",
   "repository": {
-    "type" : "git",
-    "url" : "https://github.com/ecadagiani/webFinder"
+    "type": "git",
+    "url": "https://github.com/ecadagiani/webFinder"
   },
   "main": "src/app.js",
   "engines": {

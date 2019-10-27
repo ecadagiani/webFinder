@@ -8,8 +8,10 @@ const {calculInterestScore} = require('./calculInterest');
 const {initConfig} = require('./initConfig');
 const defaultConfig = require('./defaultConfig');
 const {basicNavigationErrorCode} = require('./crawlerconstants');
+const {loadPlugins} = require('../lib/loadPlugins');
+const {promiseFunction} = require('../lib/tools');
 
-class Crawler { // todo add a system to have a js plugin file to handle event like a match is discover
+class Crawler {
     constructor(config) {
         this.id = Crawler.crawlerList.push(this);
         this.config = initConfig(config, defaultConfig);
@@ -17,6 +19,7 @@ class Crawler { // todo add a system to have a js plugin file to handle event li
         this.mongoManager = null;
         this.__time = {};
         this.__status = Crawler.statusType.initial;
+        this.__plugins = [];
     }
 
     get status() {
@@ -40,6 +43,8 @@ class Crawler { // todo add a system to have a js plugin file to handle event li
         this.mongoManager = new MongoManager(this.config, this.id);
         await this.mongoManager.init();
         this.__setStatus(Crawler.statusType.initialised);
+        this.__plugins = loadPlugins(this);
+        await this._runPlugins('onInit');
     }
 
     async __runningReinit() {
@@ -61,6 +66,7 @@ class Crawler { // todo add a system to have a js plugin file to handle event li
     async __stopNext() {
         if(this.__isStopNextStarted) return;
         this.__isStopNextStarted = true;
+        await this._runPlugins('onStop');
         if(this.page && !this.page.isClosed())
             await this.page.close();
         this.page = null;
@@ -74,15 +80,16 @@ class Crawler { // todo add a system to have a js plugin file to handle event li
     __doIhaveToStop() {
         if(this.__status !== Crawler.statusType.stopping)
             return false;
-        if(this.__status === Crawler.statusType.stopping)
-            this.__stopNext();
+
+        this.__stopNext();
         return true;
     }
 
 
-    start() {
+    async start() {
         if(get(this.config, 'start')) {
             this.__setStatus(Crawler.statusType.running);
+            await this._runPlugins('onStart');
             this._loop(this.config.start);
         }else
             this.error('no start link in config - you can add "start": "mylink.com" to config file');
@@ -146,6 +153,8 @@ class Crawler { // todo add a system to have a js plugin file to handle event li
     async fetchPage(url) {
         // access to the page and set page fetching
         this.reinitTimeMessage('fetchPage');
+        await this._runPlugins('onFetchPage', url);
+
         try{
             await Promise.all([
                 this.mongoManager.createOrUpdatePage({url, fetching: true}),
@@ -175,22 +184,26 @@ class Crawler { // todo add a system to have a js plugin file to handle event li
             language: await getPageLanguage(this.page),
             links: await fetchLinks(this.page, this.config),
         });
-        let {match = false, language, links = []} = pageData;
         this.debuglogTimeMessage('time to fetch DOM data:', 'fetchPage');
 
+        const pluginMatchs = await this._runPlugins('match', this.page, this.config);
+        pageData.match = pageData.match || (pluginMatchs || []).includes(true);
+
         // calculate links score
-        links = await Promise.map(links, async link => ({
+        const links = await Promise.map(pageData.links || [], async link => ({
             ...link,
-            interestScore: await calculInterestScore(link.href, link.domain, link.texts, language, this.config),
+            interestScore: await calculInterestScore(link.href, link.domain, link.texts, pageData.language, this.config),
         }));
         this.debuglogTimeMessage('time to calculate links score:', 'fetchPage');
+
+        await this._runPlugins('onPageIsFetched', {...pageData, links});
 
         // save all data
         const res =  await Promise.map([
             {
                 url,
-                match,
-                language,
+                match: !!pageData.match,
+                language: pageData.language,
                 fetched: true,
                 fetching: false,
                 fetchDate: Date.now()
@@ -200,7 +213,7 @@ class Crawler { // todo add a system to have a js plugin file to handle event li
                 domain: link.domain,
                 fetchInterest: link.interestScore,
             })),
-        ], pageData => this.mongoManager.createOrUpdatePage(pageData));
+        ], data => this.mongoManager.createOrUpdatePage(data));
         this.debuglogTimeMessage('time to save all data in mongo:', 'fetchPage');
         return res;
     }
@@ -226,6 +239,8 @@ class Crawler { // todo add a system to have a js plugin file to handle event li
 
     async _getNewLink(previousFetchedPage = []) {
         let futurPage = null;
+
+        await this._runPlugins('onGetNewLink', previousFetchedPage);
 
         const allDomains = uniq(previousFetchedPage.map(x => x.domain).filter(x => !!x));
         const domainsDb = await Promise.map(allDomains, domain => this.mongoManager.getDomain(domain));
@@ -306,6 +321,20 @@ class Crawler { // todo add a system to have a js plugin file to handle event li
         return url;
     }
 
+    async _runPlugins(pluginMethod, ...params) {
+        return Promise.map(this.__plugins, async plugin => {
+            if(typeof plugin[pluginMethod] === 'function') {
+                let res = undefined;
+                try{
+                    res = await promiseFunction(plugin[pluginMethod])(...params).timeout(3000);
+                }catch ( e ) {
+                    this.logError(e);
+                }
+                return res;
+            }
+            return undefined;
+        });
+    }
 
     log(...texts) {
         const date = new Date();

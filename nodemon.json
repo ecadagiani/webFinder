@@ -1,0 +1,9 @@
+{
+  "ignore": [
+    ".git",
+    "./example"
+  ],
+  "verbose": false,
+  "ext": "js json ejs",
+  "watch": ["./src"]
+}
