@@ -1,5 +1,5 @@
 const puppeteer = require('puppeteer');
-const {get, chain, template, uniq} = require('lodash');
+const {get, chain, template, uniq, find} = require('lodash');
 
 const MongoManager = require('../mongo/MongoManager');
 const {wait, getRndInteger, drawWithoutDuplicate} = require('@ecadagiani/jstools');
@@ -105,6 +105,7 @@ class Crawler {
         if(!url)
             throw this.error('The crawler failed to find a valid url');
 
+        await this._runPlugins('onFetchPage', url);
         const fetchedPages = await this._tryToFetchPage(url);
         this.debuglogTimeMessage('time to tryToFetchPage', 'internLoopFunction');
 
@@ -112,6 +113,7 @@ class Crawler {
 
         const newUrl = await this._tryToGetNewLink(fetchedPages);
         this.debuglogTimeMessage('time to tryToGetNewLink:', 'internLoopFunction');
+        await this._runPlugins('onNewLink', newUrl);
 
         const timeToFetch = this.debuglogTimeMessage(`fetched ${url} in`, 'loop');
         if(timeToFetch < this.config.timeBetweenTwoFetch)
@@ -153,7 +155,6 @@ class Crawler {
     async fetchPage(url) {
         // access to the page and set page fetching
         this.reinitTimeMessage('fetchPage');
-        await this._runPlugins('onFetchPage', url);
 
         try{
             await Promise.all([
@@ -186,7 +187,7 @@ class Crawler {
         });
         this.debuglogTimeMessage('time to fetch DOM data:', 'fetchPage');
 
-        const pluginMatchs = await this._runPlugins('match', this.page, this.config);
+        const pluginMatchs = await this._runPlugins('match', this.page, this.config, pageData);
         pageData.match = pageData.match || (pluginMatchs || []).includes(true);
 
         // calculate links score
@@ -240,7 +241,9 @@ class Crawler {
     async _getNewLink(previousFetchedPage = []) {
         let futurPage = null;
 
-        await this._runPlugins('onGetNewLink', previousFetchedPage);
+        const pluginsNewLink = await this._runPlugins('onGetNewLink', previousFetchedPage);
+        const pluginNewUrl = find(pluginsNewLink || [], url => typeof url === "string");
+        if(pluginNewUrl) return pluginNewUrl;
 
         const allDomains = uniq(previousFetchedPage.map(x => x.domain).filter(x => !!x));
         const domainsDb = await Promise.map(allDomains, domain => this.mongoManager.getDomain(domain));
