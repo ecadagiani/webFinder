@@ -26,7 +26,7 @@
     "cors": "^2.8.5",
     "express": "^4.17.1",
     "lodash": "^4.17.15",
-    "mongoose": "^5.7.1",
+    "mongoose": "^5.7.5",
     "puppeteer": "^1.19.0",
     "saslprep": "^1.0.3"
   },
