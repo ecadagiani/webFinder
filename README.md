@@ -2,6 +2,8 @@
 WebFinder is a highly configurable crawler on puppeteer to find specific
 page on the web.
 
+WORK IN PROGRESS
+
 ## Installation
 ```bash
     docker
@@ -226,6 +228,8 @@ NB: Every Crawler will have an instance of your plugins.
 - make a beautiful readMe
 - correct english of readme
 - update plugin to permit match on network analysis
+- qualified the match
+- remove PluginTest
 
 ## Authors
 - **Eden Cadagiani** ([HelloMyBot](https://hellomybot.io/fr/bienvenue/))

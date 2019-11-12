@@ -1,6 +1,6 @@
 {
   "name": "web-finder",
-  "version": "1.0.1",
+  "version": "0.6.0",
   "author": "Eden Cadagiani",
   "description": "WebFinder is a highly configurable crawler on puppeteer to find specific page on the web.",
   "license": "Apache-2.0",
