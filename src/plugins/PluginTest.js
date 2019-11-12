@@ -10,7 +10,7 @@ class PluginTest extends WebFinderPlugin {
         this.onFetchPage = this.onFetchPage.bind(this);
         this.match = this.match.bind(this);
         this.onPageIsFetched = this.onPageIsFetched.bind(this);
-        this.onGetNewLink = this.onGetNewLink.bind(this);
+        this.setNewLink = this.setNewLink.bind(this);
         this.onNewLink = this.onNewLink.bind(this);
     }
 
@@ -54,11 +54,11 @@ class PluginTest extends WebFinderPlugin {
 
     /**
      * Before recover the new link. You can return a new url to fetch
-     * PS: If you have multiple plugin with multiple 'onGetNewLink', i can't predict which plugin will be selected.
+     * NB: If you have multiple plugin with multiple 'onGetNewLink', i can't predict which plugin will be selected.
      * @param {Array<linkObject>} previousFetchedPage - the links fetch in the previous crawled page
      * @return {string|null} return the futur page to fetch
      */
-    onGetNewLink(previousFetchedPage) { return null; }
+    setNewLink(previousFetchedPage) { return null; }
 
     /**
      * After recover the new link to fetch

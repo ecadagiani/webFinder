@@ -1,9 +1,10 @@
 {
     "debug": true,
-    "throwError": false,
+    "throwError": true,
     "loop": false,
     "nbCrawler": 1,
-    "start": "https://hellomybot.io/fr/bienvenue/",
+    "start": "https://www.manomano.fr/",
+    "start2": "https://hellomybot.io/fr/bienvenue/",
     "mongo": {
         "host": "web_finder_mongo",
         "port": "27017",

@@ -1,84 +1,104 @@
-const puppeteer = require('puppeteer');
-const {get, chain, template, uniq, find} = require('lodash');
+const puppeteer = require( 'puppeteer' );
+const { get } = require( 'lodash' );
+const { wait, performance } = require( '@ecadagiani/jstools' );
 
-const MongoManager = require('../mongo/MongoManager');
-const {wait, getRndInteger, drawWithoutDuplicate} = require('@ecadagiani/jstools');
-const {checkSearchSelectors, fetchLinks, getPageLanguage} = require('./fetchPage');
-const {calculInterestScore} = require('./calculInterest');
-const {initConfig} = require('./initConfig');
-const defaultConfig = require('./defaultConfig');
-const {basicNavigationErrorCode} = require('./crawlerconstants');
-const {loadPlugins} = require('../lib/loadPlugins');
-const {promiseFunction} = require('../lib/tools');
+const defaultConfig = require( '../constants/defaultConfig' );
+
+const MongoManager = require( '../mongo/MongoManager' );
+const { loadPlugins } = require( '../lib/loadPlugins' );
+const { promiseFunction } = require( '../lib/tools' );
+const { initConfig } = require( '../lib/initConfig' );
+
+const { error, logError, logDebug, log, logTime, logTimeEnd } = require( './CrawlerLog' );
+const { __tryToFetchPage, fetchPage } = require( './CrawlerFetchPage' );
+const { __getRandomSearchEngineLink, __tryToGetNewLink, __getNewLink } = require( './CrawlerGetNewLink' );
 
 class Crawler {
-    constructor(config) {
-        this.id = Crawler.crawlerList.push(this);
-        this.config = initConfig(config, defaultConfig);
+    constructor( config ) {
+        this.id = Crawler.crawlerList.push( this );
+        this.config = initConfig( config, defaultConfig );
         this.page = null;
         this.mongoManager = null;
-        this.__time = {};
         this.__status = Crawler.statusType.initial;
         this.__plugins = [];
+
+        this.error = error.bind( this );
+        this.logError = logError.bind( this );
+        this.logDebug = logDebug.bind( this );
+        this.log = log.bind( this );
+        this.logTime = logTime.bind( this );
+        this.logTimeEnd = logTimeEnd.bind( this );
+        this.__tryToFetchPage = __tryToFetchPage.bind( this );
+        this.fetchPage = fetchPage.bind( this );
+        this.__getRandomSearchEngineLink = __getRandomSearchEngineLink.bind( this );
+        this.__getNewLink = __getNewLink.bind( this );
+        this.__tryToGetNewLink = __tryToGetNewLink.bind( this );
     }
+
 
     get status() {
         return this.__status;
     }
-    __setStatus(status) {
+
+
+    __setStatus( status ) {
         this.__status = status;
-        this.log(status);
+        this.log( status );
     }
 
-    async init() {
-        this.__setStatus(Crawler.statusType.initialising);
-        await Crawler.initBrowser(this.config.browserLanguage);
 
-        if(this.page && !this.page.isClosed())
+    async init() {
+        this.__setStatus( Crawler.statusType.initialising );
+        await Crawler.initBrowser( this.config.browserLanguage );
+
+        if ( this.page && !this.page.isClosed() )
             await this.page.close();
-        if(this.mongoManager)
+        if ( this.mongoManager )
             this.mongoManager.close();
 
         this.page = await Crawler.browser.newPage();
-        this.mongoManager = new MongoManager(this.config, this.id);
+        this.mongoManager = new MongoManager( this.config, this.id );
         await this.mongoManager.init();
-        this.__setStatus(Crawler.statusType.initialised);
-        this.__plugins = loadPlugins(this);
-        await this._runPlugins('onInit');
+        this.__setStatus( Crawler.statusType.initialised );
+        this.__plugins = loadPlugins( this );
+        await this.__runPlugins( 'onInit' );
     }
 
+
     async __runningReinit() {
-        await Crawler.initBrowser(this.config.browserLanguage);
-        if(this.page && !this.page.isClosed())
+        await Crawler.initBrowser( this.config.browserLanguage );
+        if ( this.page && !this.page.isClosed() )
             await this.page.close();
         this.page = await Crawler.browser.newPage();
     }
 
 
     async stop() {
-        this.__setStatus(Crawler.statusType.stopping);
-        while (this.__status !== Crawler.statusType.stopped) {
-            await wait(50);
+        this.__setStatus( Crawler.statusType.stopping );
+        while ( this.__status !== Crawler.statusType.stopped ) {
+            await wait( 50 );
         }
         return true;
     }
 
+
     async __stopNext() {
-        if(this.__isStopNextStarted) return;
+        if ( this.__isStopNextStarted ) return;
         this.__isStopNextStarted = true;
-        await this._runPlugins('onStop');
-        if(this.page && !this.page.isClosed())
+        await this.__runPlugins( 'onStop' );
+        if ( this.page && !this.page.isClosed() )
             await this.page.close();
         this.page = null;
-        if(this.mongoManager)
+        if ( this.mongoManager )
             this.mongoManager.close();
         this.mongoManager = null;
-        this.__setStatus(Crawler.statusType.stopped);
+        this.__setStatus( Crawler.statusType.stopped );
         this.__isStopNextStarted = false;
     }
 
+
     __doIhaveToStop() {
-        if(this.__status !== Crawler.statusType.stopping)
+        if ( this.__status !== Crawler.statusType.stopping )
             return false;
 
         this.__stopNext();
@@ -87,286 +107,59 @@ class Crawler {
 
 
     async start() {
-        if(get(this.config, 'start')) {
-            this.__setStatus(Crawler.statusType.running);
-            await this._runPlugins('onStart');
-            this._loop(this.config.start);
-        }else
-            this.error('no start link in config - you can add "start": "mylink.com" to config file');
+        if ( get( this.config, 'start' ) ) {
+            this.__setStatus( Crawler.statusType.running );
+            await this.__runPlugins( 'onStart' );
+            this.__loop( this.config.start );
+        } else
+            this.error( 'no start link in config - you can add "start": "mylink.com" to config file' );
     }
 
 
-    async _loop(url) {
-        if(this.__doIhaveToStop()) return;
+    async __loop( url ) {
+        if ( this.__doIhaveToStop() ) return;
 
-        this.reinitTimeMessage('loop');
-        this.reinitTimeMessage('internLoopFunction');
+        const loopStart = performance.now();
+        this.logTime( 'time to complete loop' );
 
-        if(!url)
-            throw this.error('The crawler failed to find a valid url');
+        if ( !url )
+            throw this.error( 'The crawler failed to find a valid url' );
 
-        await this._runPlugins('onFetchPage', url);
-        const fetchedPages = await this._tryToFetchPage(url);
-        this.debuglogTimeMessage('time to tryToFetchPage', 'internLoopFunction');
+        this.logTime( 'time to complete fetchPage' );
+        await this.__runPlugins( 'onFetchPage', url );
+        const fetchedPages = await this.__tryToFetchPage( url );
+        this.logTimeEnd( 'time to complete fetchPage' );
 
-        if(this.__doIhaveToStop()) return;
+        if ( this.__doIhaveToStop() ) return;
 
-        const newUrl = await this._tryToGetNewLink(fetchedPages);
-        this.debuglogTimeMessage('time to tryToGetNewLink:', 'internLoopFunction');
-        await this._runPlugins('onNewLink', newUrl);
+        this.logTime( 'time to complete getNewLink' );
+        const newUrl = await this.__tryToGetNewLink( fetchedPages );
+        await this.__runPlugins( 'onNewLink', newUrl );
+        this.logTimeEnd( 'time to complete getNewLink');
 
-        const timeToFetch = this.debuglogTimeMessage(`fetched ${url} in`, 'loop');
-        if(timeToFetch < this.config.timeBetweenTwoFetch)
-            await wait(this.config.timeBetweenTwoFetch - timeToFetch);
+        this.logTimeEnd( 'time to complete loop' );
+        const timeToFetch = performance.now() - loopStart;
+        if ( timeToFetch < this.config.timeBetweenTwoFetch )
+            await wait( this.config.timeBetweenTwoFetch - timeToFetch );
 
-        if(this.config.loop)
-            this._loop(newUrl);
+        if ( this.config.loop )
+            this.__loop( newUrl );
     }
 
 
-    async _tryToFetchPage(url, errorCount = 0) {
-        this.log(`fetch - ${url}`);
-        let fetchedPages = [];
-        try{
-            fetchedPages = await this.fetchPage(url);
-        }catch (err) {
-            if(this.config.throwError) throw err;
-
-            if(err.code === 6001) { // Domain recovery failed
-                this.logError(`error on fetch - ${err.message}`);
-                return null;
-            }
-            if(errorCount < 2) {
-                this.logError(`error on fetch (${errorCount + 1}) - ${err.message}`);
-                this.log('will try again');
-                await this.__runningReinit();
-                return await this._tryToFetchPage(url, errorCount + 1);
-            }
-
-            this.logError(`error on fetch (${errorCount + 1}) - ${err.message}`);
-            await this.mongoManager.createOrUpdatePage({
-                url, error: true, fetched: false, fetching: false, errorMessage: err.toString()
-            });
-        }
-        return fetchedPages || [];
-    }
-
-
-    async fetchPage(url) {
-        // access to the page and set page fetching
-        this.reinitTimeMessage('fetchPage');
-
-        try{
-            await Promise.all([
-                this.mongoManager.createOrUpdatePage({url, fetching: true}),
-                this.page.waitForNavigation({ waitUntil: ['load', 'domcontentloaded'], timeout: this.config.waitForPageLoadTimeout }), // , 'domcontentloaded'
-                this.page.goto(url),
-            ]);
-        }catch(err) {
-            if(
-                Object.values(basicNavigationErrorCode).some(errorCode => err.message.includes(errorCode))
-            ) {
-                await this.mongoManager.createOrUpdatePage({url, fetched: true, fetching: false});
-                return null;
-            }
-            throw err;
-        }
-        this.debuglogTimeMessage('time to navigate:', 'fetchPage');
-
-        // wait for body appear (5sec max), and min 1 sec
-        await Promise.all([
-            this.page.waitForSelector('body', {timeout: 5000}),
-            wait(1000),
-        ]);
-
-        // fetch DOM data
-        let pageData = await Promise.props({
-            match: await checkSearchSelectors(this.page, this.config),
-            language: await getPageLanguage(this.page),
-            links: await fetchLinks(this.page, this.config),
-        });
-        this.debuglogTimeMessage('time to fetch DOM data:', 'fetchPage');
-
-        const pluginMatchs = await this._runPlugins('match', this.page, this.config, pageData);
-        pageData.match = pageData.match || (pluginMatchs || []).includes(true);
-
-        // calculate links score
-        const links = await Promise.map(pageData.links || [], async link => ({
-            ...link,
-            interestScore: await calculInterestScore(link.href, link.domain, link.texts, pageData.language, this.config),
-        }));
-        this.debuglogTimeMessage('time to calculate links score:', 'fetchPage');
-
-        await this._runPlugins('onPageIsFetched', {...pageData, links});
-
-        // save all data
-        const res =  await Promise.map([
-            {
-                url,
-                match: !!pageData.match,
-                language: pageData.language,
-                fetched: true,
-                fetching: false,
-                fetchDate: Date.now()
-            },
-            ...links.map(link => ({
-                url: link.href,
-                domain: link.domain,
-                fetchInterest: link.interestScore,
-            })),
-        ], data => this.mongoManager.createOrUpdatePage(data));
-        this.debuglogTimeMessage('time to save all data in mongo:', 'fetchPage');
-        return res;
-    }
-
-
-    async _tryToGetNewLink(previousFetchedPage, errorCount = 0) {
-        let url = null;
-        try{
-            url = await this._getNewLink(previousFetchedPage);
-        }catch(err) {
-            if(this.__doIhaveToStop()) return;
-            if(this.config.throwError)
-                throw err;
-            if(errorCount < 2) {
-                await this.__runningReinit();
-                return await this._tryToGetNewLink(previousFetchedPage, errorCount + 1);
-            }
-            throw this.error('error on get next link - ', err.message);
-        }
-        return url;
-    }
-
-
-    async _getNewLink(previousFetchedPage = []) {
-        let futurPage = null;
-
-        const pluginsNewLink = await this._runPlugins('onGetNewLink', previousFetchedPage);
-        const pluginNewUrl = find(pluginsNewLink || [], url => typeof url === "string");
-        if(pluginNewUrl) return pluginNewUrl;
-
-        const allDomains = uniq(previousFetchedPage.map(x => x.domain).filter(x => !!x));
-        const domainsDb = await Promise.map(allDomains, domain => this.mongoManager.getDomain(domain));
-        const domainScore = domainsDb
-            .filter(x => !!x)
-            .reduce((obj, domain) => {
-                obj[domain.domain] = domain.score;
-                return obj;
-            }, {});
-
-        futurPage = chain(previousFetchedPage)
-            .map(page => ({
-                fetched: page.fetched,
-                fetching: page.fetched,
-                url: page.url,
-                score: page.fetchInterest + (get(domainScore, page.domain) || 0)
-            }))
-            .filter(page =>
-                !page.fetched
-                && !page.fetching
-                && page.score > this.config.interestMinimumScoreToContinue
-            )
-            .orderBy(['score'], ['desc'])
-            .head()
-            .value();
-
-        // if we have fetched a link with a correct score (interestMinimumScoreToContinue), we return this
-        if(futurPage)
-            return futurPage.url;
-
-        // if we have zero valid links, we get new link from mongo, but with a decent score (interestMinimumScoreToFetchDb)
-        futurPage = await this.mongoManager.getBestPageToFetch(this.config.interestMinimumScoreToFetchDb);
-        if(futurPage)
-            return futurPage.url;
-
-
-        // if we don't have a decent link in mongo, we find new links with config searchEngineUrl
-        if(this.config.searchEngineUrl) {
-            const searchEngineLink = this._getRandomSearchEngineLink();
-            const searchEngineLinkMongo = await this.mongoManager.getPage(searchEngineLink);
-            // if duckduckgo links is not present in mongo or if it was fetched more than 15 days ago
-            if(
-                !searchEngineLink
-                || Date.now() - (get(searchEngineLinkMongo, 'fetchDate') || new Date() ).getTime() > 15 * 24 * 60 * 60 * 1000
-            )
-                return searchEngineLink;
-        }
-
-
-        // if searchEngine link have already been fetch, we get link from mongo without decent score
-        futurPage = await this.mongoManager.getBestPageToFetch();
-        if(futurPage)
-            return futurPage.url;
-
-        return null;
-    }
-
-
-    _getRandomSearchEngineLink() {
-        const {searchTags, maxCombinationSearchTags} = this.config;
-        const nbTagsToDraw = getRndInteger(
-            1,
-            searchTags.length < maxCombinationSearchTags ? searchTags.length : maxCombinationSearchTags
-        );
-
-        const resTags = drawWithoutDuplicate(searchTags, nbTagsToDraw);
-        // const ddgUrl = new URL('https://duckduckgo.com');
-        // ddgUrl.searchParams.set('q', resTags.join(' '));
-        // return ddgUrl.href;
-
-        let url = null;
-        try{
-            const compiled = template( this.config.searchEngineUrl );
-            url = compiled( {query: resTags.join('+')} );
-        }catch( e ) {
-            return null;
-        }
-        return url;
-    }
-
-    async _runPlugins(pluginMethod, ...params) {
-        return Promise.map(this.__plugins, async plugin => {
-            if(typeof plugin[pluginMethod] === 'function') {
+    async __runPlugins( pluginMethod, ...params ) {
+        return Promise.map( this.__plugins, async plugin => {
+            if ( typeof plugin[pluginMethod] === 'function' ) {
                 let res = undefined;
-                try{
-                    res = await promiseFunction(plugin[pluginMethod])(...params).timeout(3000);
-                }catch ( e ) {
-                    this.logError(e);
+                try {
+                    res = await promiseFunction( plugin[pluginMethod] )( ...params ).timeout( 3000 );
+                } catch ( e ) {
+                    this.logError( e );
                 }
                 return res;
             }
             return undefined;
-        });
-    }
-
-    log(...texts) {
-        const date = new Date();
-        console.log(`[${date.toISOString()}] Crawler ${this.id}: `, ...texts);
-    }
-    debugLog(...texts) {
-        if(this.config.debug)
-            this.log(...texts);
-    }
-
-    logError(...texts) {
-        const date = new Date();
-        console.error(`[${date.toISOString()}] Crawler ${this.id}: `, ...texts);
-    }
-
-    debuglogTimeMessage(text, timeId = 'default') {
-        const timeToFetch = Date.now() - this.__time[timeId];
-        this.__time[timeId] = Date.now();
-        this.debugLog(text, `${timeToFetch / 1000}s`);
-        return timeToFetch;
-    }
-    reinitTimeMessage(timeId = 'default') {
-        this.__time[timeId] = Date.now();
-    }
-
-    error(error) {
-        if(error instanceof Error)
-            throw new Error(`Crawler ${this.id}: ${error.message}`);
-        throw new Error(`Crawler ${this.id}: ${error}`);
+        } );
     }
 }
 
@@ -374,23 +167,23 @@ class Crawler {
 Crawler.crawlerList = [];
 Crawler.__browser = null;
 
-Crawler.initBrowser = async (browserLanguage = 'en-US') => {
+Crawler.initBrowser = async ( browserLanguage = 'en-US' ) => {
     const browserOptions = {
         ignoreHTTPSErrors: true,
         headless: true,
         args: [`--lang=${browserLanguage}`]
     };
 
-    if(!Crawler.__browser)
-        Crawler.__browser = await puppeteer.launch(browserOptions);
-    else if(!Crawler.__browser.isConnected()) {
+    if ( !Crawler.__browser )
+        Crawler.__browser = await puppeteer.launch( browserOptions );
+    else if ( !Crawler.__browser.isConnected() ) {
         await Crawler.closeBrowser();
-        Crawler.__browser = await puppeteer.launch(browserOptions);
+        Crawler.__browser = await puppeteer.launch( browserOptions );
     }
 };
 
 Crawler.closeBrowser = async () => {
-    if(Crawler.__browser)
+    if ( Crawler.__browser )
         await Crawler.__browser.close();
     Crawler.__browser = null;
 };
@@ -400,8 +193,8 @@ Object.defineProperty(
     'browser',
     {
         get: () => {
-            if(!Crawler.__browser)
-                throw new Error('Browser not initialised');
+            if ( !Crawler.__browser )
+                throw new Error( 'Browser not initialised' );
             return Crawler.__browser;
         }
     }
