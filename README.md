@@ -11,6 +11,125 @@ page on the web.
 
 
 ## Configuration
+There is the default config
+```json
+{
+    "debug": false,
+    "throwError": false,
+    "loop": true,
+    "nbCrawler": 1,
+    "start": "",
+    "searchSelectors": [],
+    "searchFunction": null,
+    "mongo": {
+        "host": "",
+        "port": "",
+        "database": "",
+        "username": "",
+        "password": "",
+        "maxConnectionTry": 3,
+        "timeBetweenEachConnectionTry": 4000
+    },
+
+    "waitForPageLoadTimeout": 30000,
+    "maxUrlLength": 800,
+    "timeBetweenTwoFetch": 1000,
+    "crawlInvisibleLink": false,
+    "searchEngineUrl": "https://duckduckgo.com?q=${query}",
+    "domainScoreFunction": "(domain, nbFetch) => domain === 'duckduckgo.com' ? 0 : (nbFetch < 50 ? 0 : Math.floor( (nbFetch-50) * -5 ))",
+    "interestMinimumScoreToContinue": 0,
+    "interestMinimumScoreToFetchDb": 0,
+    "interestRandRange": {
+        "min": 0, "max": 2
+    },
+
+    "mergeAuthorizedLinksExtensions": true,
+    "authorizedLinksExtensions": [
+        "html",
+        "html5",
+        "htm",
+        "php",
+        "php3"
+    ],
+    "mergeAuthorizedURIScheme": true,
+    "authorizedURIScheme": [
+        "http",
+        "https",
+        "shttp"
+    ],
+
+    "browserLanguage": "en-US",
+    "interestLanguage": [],
+    "interestLanguageImpact": 20,
+    "uninterestLanguageImpact": -10,
+    "domainWhitelist": [
+        "libraryofbabel.info",
+        "theinfinitelibrary.com"
+    ],
+    "mergeDomainWhitelist": true,
+
+    "interestTag": [],
+    "interestTagDefaultImpact": 1,
+    "mergeInterestTag": true,
+
+    "uninterestingTag": [
+        {
+            "tag": "admin", "impact": -1
+        },
+        "password",
+        "register",
+        "registration",
+        "login",
+        "identifier",
+        "connecter",
+        "wishlist,",
+        "filter",
+        "limit",
+        "order",
+        "sort",
+        "add"
+    ],
+    "uninterestingTagDefaultImpact": -1,
+    "mergeUninterestTag": true,
+
+    "interestTagUrl": [],
+    "interestTagUrlDefaultImpact": 2,
+    "mergeInterestTagUrl": true,
+
+    "uninterestingTagUrl": [
+        "admin",
+        "cart",
+        "checkout",
+        "favorite",
+        "password",
+        "register",
+        "registration",
+        "sendfriend",
+        "wishlist,",
+        "signin",
+        "login",
+        "cgi-bin",
+        "includes",
+        "var,",
+        "filter",
+        "limit",
+        "order",
+        "sort,",
+        "sessionid",
+        "session_id",
+        "SID",
+        "PHPSESSID",
+        "add"
+    ],
+    "uninterestingTagUrlDefaultImpact": -2,
+    "mergeUninterestTagUrl": true,
+
+    "searchTags" : [
+        "foo", "bar", "crawler"
+    ],
+    "maxCombinationSearchTags": 0
+}
+```
 
 
 ## Plugin
@@ -32,7 +151,7 @@ class PluginTest extends WebFinderPlugin {
         this.onFetchPage = this.onFetchPage.bind(this);
         this.match = this.match.bind(this);
         this.onPageIsFetched = this.onPageIsFetched.bind(this);
-        this.onGetNewLink = this.onGetNewLink.bind(this);
+        this.setNewLink = this.setNewLink.bind(this);
         this.onNewLink = this.onNewLink.bind(this);
     }
 
@@ -76,11 +195,11 @@ class PluginTest extends WebFinderPlugin {
 
     /**
      * Before recover the new link. You can return a new url to fetch
-     * PS: If you have multiple plugin with multiple 'onGetNewLink', i can't predict which plugin will be selected.
+     * NB: If you have multiple plugin with multiple 'onGetNewLink', i can't predict which plugin will be selected.
      * @param {Array<linkObject>} previousFetchedPage - the links fetch in the previous crawled page
      * @return {string|null} return the futur page to fetch
      */
-    onGetNewLink(previousFetchedPage) { return null; }
+    setNewLink(previousFetchedPage) { return null; }
 
     /**
      * After recover the new link to fetch
@@ -106,7 +225,7 @@ NB: Every Crawler will have an instance of your plugins.
 ## ToDo
 - make a beautiful readMe
 - correct english of readme
-- add schedule config
+- update plugin to permit match on network analysis
 
 ## Authors
 - **Eden Cadagiani** ([HelloMyBot](https://hellomybot.io/fr/bienvenue/))
