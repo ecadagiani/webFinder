@@ -11,6 +11,7 @@ const PageSchema = new Schema({
     fetchInterest: { type: Number, default: 0 },
 
     match: { type: Boolean, default: false },
+    matchTags: [{ type: String }],
     language: { type: String, default: null },
 
     error: { type: Boolean, default: false },

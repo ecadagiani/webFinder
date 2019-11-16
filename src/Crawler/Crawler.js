@@ -10,13 +10,14 @@ const { promiseFunction } = require( '../lib/tools' );
 const { initConfig } = require( '../lib/initConfig' );
 
 const { error, logError, logDebug, log, logTime, logTimeEnd } = require( './CrawlerLog' );
-const { __tryToFetchPage, fetchPage } = require( './CrawlerFetchPage' );
+const { __tryToFetchPage, _fetchPageData, fetchPage } = require( './CrawlerFetchPage' );
 const { __getRandomSearchEngineLink, __tryToGetNewLink, __getNewLink } = require( './CrawlerGetNewLink' );
 
 class Crawler {
     constructor( config ) {
         this.id = Crawler.crawlerList.push( this );
         this.config = initConfig( config, defaultConfig );
+        this.browser = null;
         this.page = null;
         this.mongoManager = null;
         this.__status = Crawler.statusType.initial;
@@ -30,6 +31,7 @@ class Crawler {
         this.logTimeEnd = logTimeEnd.bind( this );
         this.__tryToFetchPage = __tryToFetchPage.bind( this );
         this.fetchPage = fetchPage.bind( this );
+        this._fetchPageData = _fetchPageData.bind( this );
         this.__getRandomSearchEngineLink = __getRandomSearchEngineLink.bind( this );
         this.__getNewLink = __getNewLink.bind( this );
         this.__tryToGetNewLink = __tryToGetNewLink.bind( this );
@@ -49,19 +51,41 @@ class Crawler {
 
     async init() {
         this.__setStatus( Crawler.statusType.initialising );
-        await Crawler.initBrowser( this.config.browserLanguage );
+        await this.initBrowser( );
 
         if ( this.page && !this.page.isClosed() )
             await this.page.close();
         if ( this.mongoManager )
             this.mongoManager.close();
 
-        this.page = await Crawler.browser.newPage();
+        this.page = await this.browser.newPage();
         this.mongoManager = new MongoManager( this.config, this.id );
         await this.mongoManager.init();
         this.__setStatus( Crawler.statusType.initialised );
         this.__plugins = loadPlugins( this );
         await this.__runPlugins( 'onInit' );
+    }
+
+    
+    async initBrowser ( ) {
+        const browserOptions = {
+            args: [`--lang=${this.config.browserLanguage}`],
+            ...this.config.browserOptions
+        };
+
+        if ( !this.browser )
+            this.browser = await puppeteer.launch( browserOptions );
+        else if ( !this.browser.isConnected() ) {
+            await this.closeBrowser();
+            this.browser = await puppeteer.launch( browserOptions );
+        }
+    }
+
+
+    async closeBrowser ()  {
+        if ( this.browser )
+            await this.browser.close();
+        this.browser = null;
     }
 
 
@@ -165,40 +189,6 @@ class Crawler {
 
 
 Crawler.crawlerList = [];
-Crawler.__browser = null;
-
-Crawler.initBrowser = async ( browserLanguage = 'en-US' ) => {
-    const browserOptions = {
-        ignoreHTTPSErrors: true,
-        headless: true,
-        args: [`--lang=${browserLanguage}`]
-    };
-
-    if ( !Crawler.__browser )
-        Crawler.__browser = await puppeteer.launch( browserOptions );
-    else if ( !Crawler.__browser.isConnected() ) {
-        await Crawler.closeBrowser();
-        Crawler.__browser = await puppeteer.launch( browserOptions );
-    }
-};
-
-Crawler.closeBrowser = async () => {
-    if ( Crawler.__browser )
-        await Crawler.__browser.close();
-    Crawler.__browser = null;
-};
-
-Object.defineProperty(
-    Crawler,
-    'browser',
-    {
-        get: () => {
-            if ( !Crawler.__browser )
-                throw new Error( 'Browser not initialised' );
-            return Crawler.__browser;
-        }
-    }
-);
 
 Crawler.statusType = {
     initial: 'initial',
@@ -208,7 +198,5 @@ Crawler.statusType = {
     stopping: 'stopping',
     stopped: 'stopped',
 };
-
-Crawler.prototype.__browser = null;
 
 module.exports = Crawler;

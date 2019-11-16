@@ -8,6 +8,10 @@ function initConfig(userConfig, defaultConfig) {
         mongo: {
             ...defaultConfig.mongo,
             ...userConfig.mongo,
+        },
+        browserOptions: {
+            ...defaultConfig.browserOptions,
+            ...(userConfig.browserOptions || {}),
         }
     };
 

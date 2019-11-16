@@ -92,6 +92,7 @@ class MongoManager {
         fetching = null,
         fetchInterest = null,
         match = null,
+        matchTags = null,
         language = null,
         error = null,
         errorMessage = null
@@ -118,6 +119,7 @@ class MongoManager {
         if(fetched !== null) page.fetched = fetched;
         if(fetching !== null) page.fetching = fetching;
         if(match !== null) page.match = match;
+        if(matchTags !== null) page.matchTags = matchTags;
         if(fetchInterest !== null) page.fetchInterest = fetchInterest;
         if(language !== null) page.language = language;
         if(error !== null) page.error = error;

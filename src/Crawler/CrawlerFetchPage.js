@@ -53,28 +53,41 @@ async function fetchLinks( page, { domainWhitelist, crawlInvisibleLink, authoriz
 }
 
 
-async function checkSearchSelectors( page, { searchSelectors, searchFunction: searchFunctionString } ) {
-    const result = await page.evaluate( ( selectors = [], stringFunction ) => {
-        const selectorRes = selectors.some( selector => !!document.querySelector( selector ) );
-        if ( selectorRes ) return selectorRes;
-        if ( stringFunction ) {
-            try {
-                const func = eval( stringFunction );
-                if ( typeof func === 'function' )
-                    return func();
-            } catch {
-                return false;
-            }
-        }
-        return false;
-    }, searchSelectors, searchFunctionString );
-    return !!result;
+async function checkSearchSelectors( page, { searchSelectors } ) {
+    const result = await page.evaluate( ( selectors = [] ) => {
+        const matchedSelectors = selectors.filter( ( { selector } ) => !!document.querySelector( selector ) );
+        return {
+            match: matchedSelectors.length > 0,
+            matchTags: matchedSelectors.map( ( { tag } ) => tag )
+        };
+    }, searchSelectors );
+    return result;
 }
 
 
 async function getPageLanguage( page ) {
     return await page.evaluate( () => {
         return document.documentElement.lang;
+    } );
+}
+
+async function _fetchPageData() {
+    const { match: matchSelectors, matchTags: matchTagsSelectors } = await checkSearchSelectors( this.page, this.config );
+    const pluginMatchs = await this.__runPlugins( 'match', this.page, this.config );
+
+    const match = matchSelectors || !!(pluginMatchs || []).find( ( { match } ) => match );
+    const matchTagsPlugins = chain( pluginMatchs || [] )
+        .filter( ( { match } ) => match )
+        .map( ( { matchTags } ) => matchTags )
+        .flatten()
+        .value();
+    const matchTags = [...matchTagsSelectors, ...matchTagsPlugins];
+
+    return Promise.props( {
+        match,
+        matchTags,
+        language: await getPageLanguage( this.page ),
+        links: await fetchLinks( this.page, this.config ),
     } );
 }
 
@@ -119,7 +132,7 @@ async function fetchPage( url ) {
             this.page.setRequestInterception( true ),
             this.page.on( 'request', request => {
                 const request_url = request.url();
-                // console.log( { request_url } );
+                //console.log( request_url );
                 request.continue();
             } ),
             this.page.goto( url ),
@@ -133,6 +146,7 @@ async function fetchPage( url ) {
         }
         throw err;
     }
+
     // wait for body appear (5sec max), and min 1 sec
     await Promise.all( [
         this.page.waitForSelector( 'body', { timeout: 5000 } ),
@@ -142,13 +156,7 @@ async function fetchPage( url ) {
 
     // fetch DOM data
     this.logTime( 'time to fetch page data' );
-    let pageData = await Promise.props( {
-        match: await checkSearchSelectors( this.page, this.config ),
-        language: await getPageLanguage( this.page ),
-        links: await fetchLinks( this.page, this.config ),
-    } );
-    const pluginMatchs = await this.__runPlugins( 'match', this.page, this.config, pageData );
-    pageData.match = pageData.match || (pluginMatchs || []).includes( true );
+    let pageData = await this._fetchPageData();
     this.logTimeEnd( 'time to fetch page data' );
 
     // calculate links score
@@ -183,5 +191,5 @@ async function fetchPage( url ) {
 }
 
 module.exports = {
-    __tryToFetchPage, fetchPage
+    __tryToFetchPage, fetchPage, _fetchPageData
 };

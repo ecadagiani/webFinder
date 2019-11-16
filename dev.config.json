@@ -1,10 +1,17 @@
 {
-    "debug": true,
+    "debug": false,
     "throwError": true,
     "loop": false,
     "nbCrawler": 1,
-    "start": "https://www.manomano.fr/",
-    "start2": "https://hellomybot.io/fr/bienvenue/",
+    "start3": "https://www.haas-avocats.com/",
+    "start2": "https://www.manomano.fr/",
+    "start": "https://app.hellomybot.io/home",
+    "searchSelectors": [
+        {
+            "tag": "root",
+            "selector": "#root"
+        }
+    ],
     "mongo": {
         "host": "web_finder_mongo",
         "port": "27017",

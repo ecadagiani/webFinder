@@ -14,11 +14,11 @@ function logError( ...texts ) {
 }
 
 function logTime( text ) {
-    console.time(text);
+    console.time(`crawler ${this.id} - ${text}`);
 }
 
 function logTimeEnd( text ) {
-    console.timeEnd(text);
+    console.timeEnd(`crawler ${this.id} - ${text}`);
 }
 
 function error( error ) {

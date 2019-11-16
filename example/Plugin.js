@@ -43,13 +43,14 @@ class PluginTest extends WebFinderPlugin {
      * To force the match of an page
      * @param page - The pupeeter page instance
      * @param config - The config (config.json)
-     * @return {{match, matchTags}} match - NB: the page will be marked as match=true, if one or more plugins return true
+     * @param pageData - The previous fetched page data
+     * @return {boolean} match - the page will be marked as match=true, if one or more plugins return true
      */
-    match( page, config ) {
-        return {
-            match: false,
-            matchTags: []
-        };
+    async match( page, config, pageData ) {
+        const result = await page.evaluate( () => {
+            return window.hasOwnProperty( '__REACT_DEVTOOLS_GLOBAL_HOOK__' );
+        } );
+        return !!result;
     }
 
     /**

@@ -22,7 +22,6 @@ There is the default config
     "nbCrawler": 1,
     "start": "",
     "searchSelectors": [],
-    "searchFunction": null,
     "mongo": {
         "host": "",
         "port": "",
@@ -182,10 +181,14 @@ class PluginTest extends WebFinderPlugin {
      * To force the match of an page
      * @param page - The pupeeter page instance
      * @param config - The config (config.json)
-     * @param pageData - The previous fetched page data
-     * @return {boolean} match - the page will be marked as match=true, if one or more plugins return true
+     * @return {{match, matchTags}} match - NB: the page will be marked as match=true, if one or more plugins return true
      */
-    match(page, config, pageData) { return false; }
+    match( page, config ) {
+        return {
+            match: false,
+            matchTags: []
+        };
+    }
 
     /**
      * After an page was fetched
@@ -228,8 +231,6 @@ NB: Every Crawler will have an instance of your plugins.
 - make a beautiful readMe
 - correct english of readme
 - update plugin to permit match on network analysis
-- qualified the match
-- remove PluginTest
 
 ## Authors
 - **Eden Cadagiani** ([HelloMyBot](https://hellomybot.io/fr/bienvenue/))

@@ -1,7 +1,6 @@
 {
     "nbCrawler": 1,
     "start": "https://fr.reactjs.org/",
-    "searchFunction": "() => window.hasOwnProperty('__REACT_DEVTOOLS_GLOBAL_HOOK__')",
     "mongo": {
         "host": "web_finder_mongo",
         "port": "27017",

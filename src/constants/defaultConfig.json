@@ -5,7 +5,6 @@
     "nbCrawler": 1,
     "start": "",
     "searchSelectors": [],
-    "searchFunction": null,
     "mongo": {
         "host": "",
         "port": "",
@@ -14,6 +13,11 @@
         "password": "",
         "maxConnectionTry": 3,
         "timeBetweenEachConnectionTry": 4000
+    },
+    "browserLanguage": "en-US",
+    "browserOptions": {
+        "ignoreHTTPSErrors": true,
+        "headless": true
     },
 
     "waitForPageLoadTimeout": 30000,
@@ -43,7 +47,6 @@
         "shttp"
     ],
 
-    "browserLanguage": "en-US",
     "interestLanguage": [],
     "interestLanguageImpact": 20,
     "uninterestLanguageImpact": -10,

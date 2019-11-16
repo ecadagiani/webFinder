@@ -1,38 +1,45 @@
-
 class WebFinderPlugin {
-    constructor(crawler) {
+    constructor( crawler ) {
         this.__crawler = crawler;
     }
 
     /**
      * After the crawler is initialized
      */
-    onInit() {}
+    onInit() {
+    }
 
     /**
      * Before the crawler start
      */
-    onStart() {}
+    onStart() {
+    }
 
     /**
      * When crawler stop
      */
-    onStop() {}
+    onStop() {
+    }
 
     /**
      * Before a page was fetched
      * @param {string} url - page url
      */
-    onFetchPage(url) {}
+    onFetchPage( url ) {
+    }
 
     /**
      * To force the match of an page
      * @param page - The pupeeter page instance
      * @param config - The config (config.json)
-     * @param pageData - The previous fetched page data
-     * @return {boolean} match - the page will be marked as match=true, if one or more plugins return true
+     * @return {{match, matchTags}} match - NB: the page will be marked as match=true, if one or more plugins return true
      */
-    match(page, config, pageData) { return false; }
+    match( page, config ) {
+        return {
+            match: false,
+            matchTags: []
+        };
+    }
 
     /**
      * After an page was fetched
@@ -40,7 +47,8 @@ class WebFinderPlugin {
      * @param {string} pageData.language - the page language
      * @param {Array<linkObject>} pageData.links - An object with the key {href, domain, texts, interestScore} for each link in fetched page
      */
-    onPageIsFetched(pageData) {}
+    onPageIsFetched( pageData ) {
+    }
 
     /**
      * Before recover the new link. You can return a new url to fetch
@@ -48,13 +56,16 @@ class WebFinderPlugin {
      * @param {Array<linkObject>} previousFetchedPage - the links fetch in the previous crawled page
      * @return {string|null} return the futur page to fetch
      */
-    onGetNewLink(previousFetchedPage) { return null; }
+    onGetNewLink( previousFetchedPage ) {
+        return null;
+    }
 
     /**
      * After recover the new link to fetch
      * @param {string} newUrl - the new url fetched
      */
-    onNewLink(newUrl) {}
+    onNewLink( newUrl ) {
+    }
 
 }
 
