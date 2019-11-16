@@ -29,6 +29,7 @@ services:
     volumes:
       - ./src:/app/src
       - ./dev.config.json:/app/config.json
+      - ./src/plugins/dev.PluginTest.js:/app/src/plugins/PluginTest.js
       - web_finder_node_volumes:/app/node_modules
     environment:
       PORT: 3030

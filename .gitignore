@@ -62,3 +62,5 @@ typings/
 
 .idea/
 .DS_Store
+
+src/plugins/PluginTest.js

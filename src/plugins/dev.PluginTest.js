@@ -17,7 +17,7 @@ class PluginTest extends WebFinderPlugin {
     /**
      * After the crawler is initialized
      */
-    onInit() {}
+    onInit() { }
 
     /**
      * Before the crawler start
