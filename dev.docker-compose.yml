@@ -1,4 +1,4 @@
-version: "3.2"
+version: "3.4"
 services:
   web_finder_mongo:
     image: mongo:latest
@@ -24,6 +24,7 @@ services:
     build:
       context: .
       dockerfile: dev.dockerfile
+      network: host
     cap_add:
       - SYS_ADMIN
     volumes:

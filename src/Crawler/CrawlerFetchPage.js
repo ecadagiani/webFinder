@@ -1,4 +1,4 @@
-const { chain } = require( 'lodash' );
+const { chain, get } = require( 'lodash' );
 const { wait, getUrlParts } = require( '@ecadagiani/jstools' );
 
 const { basicNavigationErrorCode } = require( '../constants/crawlerconstants' );
@@ -72,20 +72,32 @@ async function getPageLanguage( page ) {
 }
 
 async function _fetchPageData() {
-    const { match: matchSelectors, matchTags: matchTagsSelectors } = await checkSearchSelectors( this.page, this.config );
-    const pluginMatchs = await this.__runPlugins( 'match', this.page, this.config );
+    const getMatch = async () => {
+        const [
+            { match: matchSelectors, matchTags: matchTagsSelectors },
+            pluginMatchs
+        ] = await Promise.all( [
+            checkSearchSelectors( this.page, this.config ),
+            this.__runPlugins( 'match', this.page, this.config )
+        ] );
 
-    const match = matchSelectors || !!(pluginMatchs || []).find( ( { match } ) => match );
-    const matchTagsPlugins = chain( pluginMatchs || [] )
-        .filter( ( { match } ) => match )
-        .map( ( { matchTags } ) => matchTags )
-        .flatten()
-        .value();
-    const matchTags = [...matchTagsSelectors, ...matchTagsPlugins];
+        const match = matchSelectors || !!(pluginMatchs || []).find( x => get( x, 'match', false ) );
+        const matchTagsPlugins = chain( pluginMatchs || [] )
+            .filter( x => get( x, 'match', false ) )
+            .map( ( { matchTags } ) => matchTags )
+            .flatten()
+            .value();
+        const matchTags = [...matchTagsSelectors, ...matchTagsPlugins];
+
+        return {
+            match, matchTags
+        };
+    };
 
     return Promise.props( {
-        match,
-        matchTags,
+        // match,
+        // matchTags,
+        ...await getMatch(),
         language: await getPageLanguage( this.page ),
         links: await fetchLinks( this.page, this.config ),
     } );
@@ -121,6 +133,7 @@ async function __tryToFetchPage( url, errorCount = 0 ) {
 
 async function fetchPage( url ) {
     // access to the page and set page fetching
+
     this.logTime( 'time to navigate' );
     try {
         await Promise.all( [
@@ -129,12 +142,6 @@ async function fetchPage( url ) {
                 waitUntil: ['load', 'domcontentloaded'],
                 timeout: this.config.waitForPageLoadTimeout
             } ), // , 'domcontentloaded'
-            this.page.setRequestInterception( true ),
-            this.page.on( 'request', request => {
-                const request_url = request.url();
-                //console.log( request_url );
-                request.continue();
-            } ),
             this.page.goto( url ),
         ] );
     } catch ( err ) {
@@ -174,7 +181,8 @@ async function fetchPage( url ) {
     const res = await Promise.map( [
         {
             url,
-            match: !!pageData.match,
+            match: pageData.match,
+            matchTags: pageData.matchTags,
             language: pageData.language,
             fetched: true,
             fetching: false,

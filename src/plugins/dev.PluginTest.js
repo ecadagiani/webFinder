@@ -1,3 +1,4 @@
+const { remove } = require( 'lodash' );
 const WebFinderPlugin = require( '../lib/WebFinderPlugin' );
 
 class PluginTest extends WebFinderPlugin {
@@ -12,6 +13,9 @@ class PluginTest extends WebFinderPlugin {
         this.onPageIsFetched = this.onPageIsFetched.bind( this );
         this.setNewLink = this.setNewLink.bind( this );
         this.onNewLink = this.onNewLink.bind( this );
+
+        this.client = null;
+        this._webSocketHandlers = [];
     }
 
     /**
@@ -23,7 +27,13 @@ class PluginTest extends WebFinderPlugin {
     /**
      * Before the crawler start
      */
-    onStart() {
+    async onStart() {
+        this.client = await this.__crawler.page.target().createCDPSession();
+        await this.client.send( 'Network.enable' );
+        await this.client.send( 'Page.enable' );
+        this.client.on( 'Network.webSocketCreated', ( params ) => {
+            this._webSocketHandlers.forEach( handler => handler( params ) );
+        } );
     }
 
     /**
@@ -46,10 +56,17 @@ class PluginTest extends WebFinderPlugin {
      * @return {{match, matchTags}} match - NB: the page will be marked as match=true, if one or more plugins return true
      */
     match( page, config ) {
-        return {
-            match: false,
-            matchTags: []
-        };
+        this.cleanWebSocketHandler();
+        return new Promise((resolve) => {
+            this.addWebSocketHandler((params) => {
+                console.log("YOUPI", params.url);
+
+                resolve({
+                    match: false,
+                    matchTags: []
+                });
+            });
+        });
     }
 
     /**
@@ -76,6 +93,17 @@ class PluginTest extends WebFinderPlugin {
      * @param {string} newUrl - the new url fetched
      */
     onNewLink( newUrl ) {
+    }
+
+    addWebSocketHandler( handler ) {
+        this._webSocketHandlers.push( handler );
+        return () => {
+            remove( this._webSocketHandlers, x => x === handler );
+        };
+    }
+
+    cleanWebSocketHandler( ) {
+        this._webSocketHandlers = [];
     }
 
 }

@@ -66,7 +66,7 @@ class Crawler {
         await this.__runPlugins( 'onInit' );
     }
 
-    
+
     async initBrowser ( ) {
         const browserOptions = {
             args: [`--lang=${this.config.browserLanguage}`],
@@ -176,7 +176,7 @@ class Crawler {
             if ( typeof plugin[pluginMethod] === 'function' ) {
                 let res = undefined;
                 try {
-                    res = await promiseFunction( plugin[pluginMethod] )( ...params ).timeout( 3000 );
+                    res = await promiseFunction( plugin[pluginMethod] )( ...params ).timeout( this.config.pluginTimeout );
                 } catch ( e ) {
                     this.logError( e );
                 }

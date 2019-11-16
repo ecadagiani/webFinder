@@ -1,11 +1,13 @@
 {
-    "debug": false,
+    "debug": true,
     "throwError": true,
-    "loop": false,
+    "loop": true,
     "nbCrawler": 1,
-    "start3": "https://www.haas-avocats.com/",
     "start2": "https://www.manomano.fr/",
-    "start": "https://app.hellomybot.io/home",
+    "start4": "https://hellomybot.io/fr/bienvenue/",
+    "start5": "https://mesprojets.meetdeal.fr/fr",
+    "start1": "https://www.withings.com/fr/fr/",
+    "start": "https://www.shopping-feed.com/fr/",
     "searchSelectors": [
         {
             "tag": "root",
@@ -18,5 +20,12 @@
         "database": "webfinder",
         "username": "crawler",
         "password": "password"
+    },
+    "pluginTimeout": 10000,
+    "browserOptions": {
+        "headless": false,
+        "args": [ "--disable-features=site-per-process", "--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage" ],
+        "slowMo": 150,
+        "devTools": true
     }
 }

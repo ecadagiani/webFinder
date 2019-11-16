@@ -31,6 +31,12 @@ There is the default config
         "maxConnectionTry": 3,
         "timeBetweenEachConnectionTry": 4000
     },
+    "pluginTimeout": 3000,
+    "browserLanguage": "en-US",
+    "browserOptions": {
+        "ignoreHTTPSErrors": true,
+        "headless": true
+    },
 
     "waitForPageLoadTimeout": 30000,
     "maxUrlLength": 800,
@@ -59,7 +65,6 @@ There is the default config
         "shttp"
     ],
 
-    "browserLanguage": "en-US",
     "interestLanguage": [],
     "interestLanguageImpact": 20,
     "uninterestLanguageImpact": -10,
@@ -226,6 +231,7 @@ module.exports = PluginTest;
 ```
 
 NB: Every Crawler will have an instance of your plugins.
+NB 2: You can use lodash or bluebird in your plugin
 
 ## ToDo
 - make a beautiful readMe
