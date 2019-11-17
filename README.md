@@ -250,13 +250,16 @@ or [axios](https://github.com/axios/axios) in your plugin
 it's a specific log who print dateTime and crawler ID
 
 
-## Issue
+## Known Issue
 - An container of devtools image, cannot be re-launched if
 the container has not been down before
 
 ## ToDo
 - make a beautiful readMe
+- add more complexe exemple
 - correct english of readme
+- make a correct branch system
+- tag first stable version
 
 ## Authors
 - **Eden Cadagiani** ([HelloMyBot](https://hellomybot.io/fr/bienvenue/))
