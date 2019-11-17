@@ -71,7 +71,7 @@ async function getPageLanguage( page ) {
     } );
 }
 
-async function _fetchPageData(url) {
+async function _fetchPageData( url ) {
     const getMatch = async () => {
         const [
             { match: matchSelectors, matchTags: matchTagsSelectors },
@@ -87,7 +87,7 @@ async function _fetchPageData(url) {
             .map( ( { matchTags } ) => matchTags )
             .flatten()
             .value();
-        const matchTags = uniq([...matchTagsSelectors, ...matchTagsPlugins]);
+        const matchTags = uniq( [...matchTagsSelectors, ...matchTagsPlugins] );
 
         return {
             match, matchTags
@@ -163,7 +163,7 @@ async function fetchPage( url ) {
 
     // fetch DOM data
     this.logTime( 'time to fetch page data' );
-    let pageData = await this._fetchPageData(url);
+    let pageData = await this._fetchPageData( url );
     this.logTimeEnd( 'time to fetch page data' );
 
     // calculate links score

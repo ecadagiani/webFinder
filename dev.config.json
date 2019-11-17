@@ -1,8 +1,8 @@
 {
     "debug": true,
     "throwError": true,
-    "loop": true,
-    "nbCrawler": 5,
+    "loop": false,
+    "nbCrawler": 1,
     "start": "https://mesprojets.meetdeal.fr/fr",
     "searchSelectors": [
         {
