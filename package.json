@@ -15,12 +15,13 @@
   "scripts": {
     "start": "node src/app.js",
     "startdev": "nodemon src/app.js",
-    "start-docker-dev": "docker-compose -f dev.docker-compose.yml up",
+    "start-docker-dev": "docker-compose -f dev.docker-compose.yml down && docker-compose -f dev.docker-compose.yml up",
     "down-docker-dev": "docker-compose -f dev.docker-compose.yml down -v",
     "build-docker-dev": "docker-compose -f dev.docker-compose.yml build"
   },
   "dependencies": {
     "@ecadagiani/jstools": "^1.1.2",
+    "axios": "^0.19.0",
     "bluebird": "^3.7.1",
     "body-parser": "^1.19.0",
     "cors": "^2.8.5",

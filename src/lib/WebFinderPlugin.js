@@ -1,6 +1,12 @@
 class WebFinderPlugin {
     constructor( crawler ) {
         this.__crawler = crawler;
+        this.log = this.log.bind( this );
+    }
+
+    log( ...texts ) {
+        const date = new Date();
+        console.log( `[${date.toISOString()}] Crawler ${this.__crawler.id} - Plugin: `, ...texts );
     }
 
     /**

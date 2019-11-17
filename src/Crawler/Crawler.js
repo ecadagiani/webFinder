@@ -90,10 +90,10 @@ class Crawler {
 
 
     async __runningReinit() {
-        await Crawler.initBrowser( this.config.browserLanguage );
+        await this.initBrowser( );
         if ( this.page && !this.page.isClosed() )
             await this.page.close();
-        this.page = await Crawler.browser.newPage();
+        this.page = await this.browser.newPage();
     }
 
 

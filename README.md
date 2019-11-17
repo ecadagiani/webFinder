@@ -167,7 +167,9 @@ class PluginTest extends WebFinderPlugin {
     /**
      * After the crawler is initialized
      */
-    onInit() {}
+    onInit() {
+        this.log("init");
+    }
 
     /**
      * Before the crawler start
@@ -234,11 +236,17 @@ module.exports = PluginTest;
  */
 ```
 
-> Every Crawler will have an instance of your plugins.
+>  - Every Crawler will have an instance of your plugins.
 >
-> You can use [lodash](https://lodash.com/docs) or [bluebird](http://bluebirdjs.com/) in your plugin
+>  - You can use [lodash](https://lodash.com/docs), 
+[bluebird](http://bluebirdjs.com/), 
+or [axios](https://github.com/axios/axios) in your plugin
 >
-> Every method can be **async**
+> - Every method can be **async**
+>
+> - You can also use `this.log(..texts)`, 
+it's a specific log who print dateTime and crawler ID
+
 
 ## Issue
 - An container of devtools image, cannot be re-launched if

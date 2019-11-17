@@ -2,12 +2,8 @@
     "debug": true,
     "throwError": true,
     "loop": true,
-    "nbCrawler": 1,
-    "start2": "https://www.manomano.fr/",
-    "start4": "https://hellomybot.io/fr/bienvenue/",
-    "start5": "https://mesprojets.meetdeal.fr/fr",
-    "start1": "https://www.withings.com/fr/fr/",
-    "start": "https://www.shopping-feed.com/fr/",
+    "nbCrawler": 5,
+    "start": "https://mesprojets.meetdeal.fr/fr",
     "searchSelectors": [
         {
             "tag": "root",
