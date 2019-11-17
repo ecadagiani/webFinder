@@ -21,6 +21,7 @@ There is the default config
 {
     "debug": false,
     "throwError": false,
+    "showPluginTimeoutError": true,
     "loop": true,
     "nbCrawler": 1,
     "start": "", // can be an url or an array of url
