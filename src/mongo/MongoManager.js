@@ -75,16 +75,18 @@ class MongoManager {
     }
 
     async _addToNbFetchToDomain( domain, nbFetch = 1 ) {
-        let domainToSave = await this.getDomain( domain );
-        if ( !domainToSave )
-            domainToSave = new this.__DomainModel();
-        domainToSave._id = domain;
-        domainToSave.domain = domain;
-        domainToSave.nbFetch = (domainToSave.nbFetch || 0) + nbFetch;
-        domainToSave.score = this.config.domainScoreFunction( domainToSave.domain, domainToSave.nbFetch );
-
-        await domainToSave.save();
-        return domainToSave;
+        let mongoDomain = await this.getDomain( domain );
+        await this.__DomainModel.findOneAndUpdate(
+            {domain},
+            {
+                $inc: {'nbFetch' : nbFetch},
+                score: this.config.domainScoreFunction( domain, mongoDomain.nbFetch + nbFetch )
+            },
+            {
+                setDefaultsOnInsert: true,
+                upsert: true,
+            }
+        );
     }
 
     async getDomain( domain ) {
