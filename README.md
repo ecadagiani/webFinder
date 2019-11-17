@@ -258,7 +258,6 @@ the container has not been down before
 - make a beautiful readMe
 - add more complexe exemple
 - correct english of readme
-- make a correct branch system
 - tag first stable version
 
 ## Authors

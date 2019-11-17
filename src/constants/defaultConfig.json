@@ -20,7 +20,6 @@
         "ignoreHTTPSErrors": true,
         "headless": true
     },
-
     "waitForPageLoadTimeout": 30000,
     "maxUrlLength": 800,
     "timeBetweenTwoFetch": 1000,
@@ -30,9 +29,9 @@
     "interestMinimumScoreToContinue": 0,
     "interestMinimumScoreToFetchDb": 0,
     "interestRandRange": {
-        "min": 0, "max": 2
+        "min": 0,
+        "max": 2
     },
-
     "mergeAuthorizedLinksExtensions": true,
     "authorizedLinksExtensions": [
         "html",
@@ -47,7 +46,6 @@
         "https",
         "shttp"
     ],
-
     "interestLanguage": [],
     "interestLanguageImpact": 20,
     "uninterestLanguageImpact": -10,
@@ -56,14 +54,13 @@
         "theinfinitelibrary.com"
     ],
     "mergeDomainWhitelist": true,
-
     "interestTag": [],
     "interestTagDefaultImpact": 1,
     "mergeInterestTag": true,
-
     "uninterestingTag": [
         {
-            "tag": "admin", "impact": -1
+            "tag": "admin",
+            "impact": -1
         },
         "password",
         "register",
@@ -80,11 +77,9 @@
     ],
     "uninterestingTagDefaultImpact": -1,
     "mergeUninterestTag": true,
-
     "interestTagUrl": [],
     "interestTagUrlDefaultImpact": 2,
     "mergeInterestTagUrl": true,
-
     "uninterestingTagUrl": [
         "admin",
         "cart",
@@ -112,9 +107,10 @@
     ],
     "uninterestingTagUrlDefaultImpact": -2,
     "mergeUninterestTagUrl": true,
-
-    "searchTags" : [
-        "foo", "bar", "crawler"
+    "searchTags": [
+        "foo",
+        "bar",
+        "crawler"
     ],
     "maxCombinationSearchTags": 0
 }

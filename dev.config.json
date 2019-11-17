@@ -1,5 +1,5 @@
 {
-    "debug": true,
+    "debug": false,
     "throwError": false,
     "loop": true,
     "nbCrawler": 3,
@@ -24,8 +24,13 @@
     "pluginTimeout": 10000,
     "browserOptions": {
         "headless": false,
-        "args": [ "--disable-features=site-per-process", "--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage" ],
+        "args": [
+            "--disable-features=site-per-process",
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage"
+        ],
         "slowMo": 150,
         "devTools": true
-    },
+    }
 }
