@@ -43,10 +43,10 @@ class PluginTest extends WebFinderPlugin {
      * To force the match of an page
      * @param page - The pupeeter page instance
      * @param config - The config (config.json)
-     * @param pageData - The previous fetched page data
+     * @param url - The page url
      * @return {boolean} match - the page will be marked as match=true, if one or more plugins return true
      */
-    async match( page, config, pageData ) {
+    async match( page, config, url ) {
         const result = await page.evaluate( () => {
             return window.hasOwnProperty( '__REACT_DEVTOOLS_GLOBAL_HOOK__' );
         } );
@@ -61,6 +61,7 @@ class PluginTest extends WebFinderPlugin {
      * @param {boolean} pageData.match - if the page was matched or not
      * @param {Array<string>} pageData.matchTags - the matched tags
      * @param {string} pageData.language - the page language
+     * @param {string} pageData.url - the page url
      * @param {Array<linkObject>} pageData.links - An object with the key {href, domain, texts, interestScore} for each link in fetched page
      */
     onPageIsFetched( pageData ) {

@@ -71,14 +71,14 @@ async function getPageLanguage( page ) {
     } );
 }
 
-async function _fetchPageData() {
+async function _fetchPageData(url) {
     const getMatch = async () => {
         const [
             { match: matchSelectors, matchTags: matchTagsSelectors },
             pluginMatchs
         ] = await Promise.all( [
             checkSearchSelectors( this.page, this.config ),
-            this.__runPlugins( 'match', this.page, this.config )
+            this.__runPlugins( 'match', this.page, this.config, url )
         ] );
 
         const match = matchSelectors || !!(pluginMatchs || []).find( x => get( x, 'match', false ) );
@@ -163,7 +163,7 @@ async function fetchPage( url ) {
 
     // fetch DOM data
     this.logTime( 'time to fetch page data' );
-    let pageData = await this._fetchPageData();
+    let pageData = await this._fetchPageData(url);
     this.logTimeEnd( 'time to fetch page data' );
 
     // calculate links score
@@ -174,7 +174,7 @@ async function fetchPage( url ) {
     }) );
     this.logTimeEnd( 'time to calculate links score' );
 
-    await this.__runPlugins( 'onPageIsFetched', { ...pageData, links } );
+    await this.__runPlugins( 'onPageIsFetched', { ...pageData, links, url } );
 
     // save all data
     this.logTime( 'time to save data in mongo' );
