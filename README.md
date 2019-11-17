@@ -23,7 +23,7 @@ There is the default config
     "throwError": false,
     "loop": true,
     "nbCrawler": 1,
-    "start": "",
+    "start": "", // can be an url or an array of url
     "searchSelectors": [],
     "mongo": {
         "host": "",

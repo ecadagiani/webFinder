@@ -134,7 +134,8 @@ class Crawler {
         if ( get( this.config, 'start' ) ) {
             this.__setStatus( Crawler.statusType.running );
             await this.__runPlugins( 'onStart' );
-            this.__loop( this.config.start );
+            const startUrl = Array.isArray( this.config.start ) ? this.config.start[this.id - 1] : this.config.start;
+            this.__loop(startUrl);
         } else
             this.error( 'no start link in config - you can add "start": "mylink.com" to config file' );
     }

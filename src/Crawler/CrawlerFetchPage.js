@@ -178,7 +178,7 @@ async function fetchPage( url ) {
 
     // save all data
     this.logTime( 'time to save data in mongo' );
-    const res = await Promise.map( [
+    const pages = [
         {
             url,
             match: pageData.match,
@@ -193,9 +193,10 @@ async function fetchPage( url ) {
             domain: link.domain,
             fetchInterest: link.interestScore,
         }) ),
-    ], data => this.mongoManager.createOrUpdatePage( data ) );
+    ];
+    const res = await Promise.map( pages, data => this.mongoManager.createOrUpdatePage( data ) );
     this.logTimeEnd( 'time to save data in mongo' );
-    return res;
+    return pages;
 }
 
 module.exports = {

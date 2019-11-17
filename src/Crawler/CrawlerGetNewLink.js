@@ -15,6 +15,7 @@ async function __tryToGetNewLink( previousFetchedPage, errorCount = 0 ) {
         }
         throw this.error( 'error on get next link - ', err.message );
     }
+
     return url;
 }
 
@@ -40,7 +41,7 @@ async function __getNewLink( previousFetchedPage = [] ) {
             fetched: page.fetched,
             fetching: page.fetched,
             url: page.url,
-            score: page.fetchInterest + (get( domainScore, page.domain ) || 0)
+            score: page.fetchInterest + (get( domainScore, page.domain ) || 0),
         }) )
         .filter( page =>
             !page.fetched

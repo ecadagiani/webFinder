@@ -105,16 +105,7 @@ class MongoManager {
             throw err;
         }
 
-        let page = await this.getPage(url);
-        if(!page)
-            page = new this.__PageModel();
-
-        if(saveDomain && fetched && !page.fetched)
-            await this._addToNbFetchToDomain(domain);
-
-        page.url = url;
-        page.domain = domain;
-
+        const page = {url, domain};
         if(fetchDate !== null) page.fetchDate = fetchDate;
         if(fetched !== null) page.fetched = fetched;
         if(fetching !== null) page.fetching = fetching;
@@ -125,8 +116,17 @@ class MongoManager {
         if(error !== null) page.error = error;
         if(errorMessage !== null) page.errorMessage = errorMessage;
 
-        await page.save();
-        return page;
+        await this.__PageModel.updateOne(
+            { url },
+            page,
+            {
+                setDefaultsOnInsert: true,
+                upsert: true,
+            }
+        );
+
+        if(saveDomain && fetched && !page.fetched)
+            await this._addToNbFetchToDomain(domain);
     }
 
     async getPage(url) {
