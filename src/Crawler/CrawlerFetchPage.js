@@ -137,7 +137,7 @@ async function fetchPage( url ) {
     this.logTime( 'time to navigate' );
     try {
         await Promise.all( [
-            this.mongoManager.createOrUpdatePage( { url, fetching: true } ),
+            this.mongoManager.createOrUpdatePage( { url, fetching: true }, { saveDomain: true } ),
             this.page.waitForNavigation( {
                 waitUntil: ['load', 'domcontentloaded'],
                 timeout: this.config.waitForPageLoadTimeout
@@ -180,21 +180,28 @@ async function fetchPage( url ) {
     this.logTime( 'time to save data in mongo' );
     const pages = [
         {
-            url,
-            match: pageData.match,
-            matchTags: pageData.matchTags,
-            language: pageData.language,
-            fetched: true,
-            fetching: false,
-            fetchDate: Date.now()
+            data: {
+                url,
+                match: pageData.match,
+                matchTags: pageData.matchTags,
+                language: pageData.language,
+                fetched: true,
+                fetching: false,
+                fetchDate: Date.now()
+            },
+            options: {
+                addOneToDomain: true
+            }
         },
         ...links.map( link => ({
-            url: link.href,
-            domain: link.domain,
-            fetchInterest: link.interestScore,
+            data: {
+                url: link.href,
+                domain: link.domain,
+                fetchInterest: link.interestScore,
+            }
         }) ),
     ];
-    const res = await Promise.map( pages, data => this.mongoManager.createOrUpdatePage( data ) );
+    await Promise.map( pages, ( { data, options } ) => this.mongoManager.createOrUpdatePage( data, options ) );
     this.logTimeEnd( 'time to save data in mongo' );
     return pages;
 }

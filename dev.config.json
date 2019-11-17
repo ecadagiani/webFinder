@@ -5,7 +5,7 @@
     "nbCrawler": 3,
     "start": [
         "https://www.zendesk.com/apps/directory/?q=&idx=appsIndex&p=0&hFR%5Bproducts%5D%5B0%5D=support&product=support",
-        "https://www.zendesk.com/apps/",
+        "https://www.zendesk.com/suite/",
         "https://www.zendesk.com/apps/directory/?q=&idx=appsIndex&p=0&hFR%5Bproducts%5D%5B0%5D=chat"
     ],
     "searchSelectors": [

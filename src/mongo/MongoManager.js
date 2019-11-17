@@ -1,15 +1,15 @@
-const mongoose = require('mongoose');
-const {head} = require('lodash');
-const {wait} = require('@ecadagiani/jstools');
-const PageSchema = require('./PageSchema');
-const DomainSchema = require('./DomainSchema');
-const {getDomain} = require('../lib/tools');
+const mongoose = require( 'mongoose' );
+const { head } = require( 'lodash' );
+const { wait } = require( '@ecadagiani/jstools' );
+const PageSchema = require( './PageSchema' );
+const DomainSchema = require( './DomainSchema' );
+const { getDomain } = require( '../lib/tools' );
 
-mongoose.set('useUnifiedTopology', true);
-mongoose.set('useFindAndModify', false);
+mongoose.set( 'useUnifiedTopology', true );
+mongoose.set( 'useFindAndModify', false );
 
 class MongoManager {
-    constructor({mongo, domainScoreFunction, debug}, id) {
+    constructor( { mongo, domainScoreFunction, debug }, id ) {
         this.config = { ...mongo, domainScoreFunction, debug };
         this.id = id;
         this.__connection = null;
@@ -18,75 +18,82 @@ class MongoManager {
     }
 
     async init() {
-        this.debugLog('initialising');
+        this.debugLog( 'initialising' );
         await this.connect();
-        this.__PageModel = this.__connection.model('Page', PageSchema);
-        this.__DomainModel = this.__connection.model('Domain', DomainSchema);
-        this.debugLog('initialised');
+        this.__PageModel = this.__connection.model( 'Page', PageSchema );
+        this.__DomainModel = this.__connection.model( 'Domain', DomainSchema );
+        this.debugLog( 'initialised' );
     }
 
     async connect() {
-        const {host, port, database, username, password, maxConnectionTry, timeBetweenEachConnectionTry} = this.config;
+        const { host, port, database, username, password, maxConnectionTry, timeBetweenEachConnectionTry } = this.config;
         const mongoUri = `mongodb://${username}:${password}@${host}:${port}/${database}`;
-        const options = {useNewUrlParser: true, useCreateIndex: true};
+        const options = { useNewUrlParser: true, useCreateIndex: true };
 
-        const __connect = async (errorCount = 0) => {
-            this.debugLog(`try to connect to ${mongoUri}`);
-            try{
-                const connection = await mongoose.createConnection(mongoUri, options);
+        const __connect = async ( errorCount = 0 ) => {
+            this.debugLog( `try to connect to ${mongoUri}` );
+            try {
+                const connection = await mongoose.createConnection( mongoUri, options );
                 return connection;
-            }catch (err) {
-                if(errorCount >= maxConnectionTry)
+            } catch ( err ) {
+                if ( errorCount >= maxConnectionTry )
                     throw err;
-                else{
-                    this.debugLog(`connection error: ${err.message}`);
-                    await wait(timeBetweenEachConnectionTry);
-                    return await __connect(errorCount + 1);
+                else {
+                    this.debugLog( `connection error: ${err.message}` );
+                    await wait( timeBetweenEachConnectionTry );
+                    return await __connect( errorCount + 1 );
                 }
             }
         };
         this.__connection = await __connect();
-        this.debugLog(`connected to ${host}:${port}/${database}`);
+        this.debugLog( `connected to ${host}:${port}/${database}` );
 
     }
 
     close() {
         this.__connection.close();
-        this.debugLog('connection closed');
+        this.debugLog( 'connection closed' );
     }
 
-    async createOrUpdateDomain({domain, score = null, nbFetch = null}) {
-        let domainToSave = await this.getDomain(domain);
-        if(!domainToSave)
-            domainToSave = new this.__DomainModel();
-        domainToSave._id = domain;
-        domainToSave.domain = domain;
-        if(score !== null) domainToSave.score = score;
-        if(nbFetch !== null) domainToSave.nbFetch = nbFetch;
-        await domainToSave.save();
-        return  domainToSave;
+    async createOrUpdateDomain( { domain, score = null, nbFetch = null } ) {
+        const domainToSave = {
+            _id: domain,
+            domain,
+        };
+        if ( score !== null ) domainToSave.score = score;
+        if ( nbFetch !== null ) domainToSave.nbFetch = nbFetch;
+
+        await this.__DomainModel.updateOne(
+            { domain },
+            domainToSave,
+            {
+                setDefaultsOnInsert: true,
+                upsert: true,
+            }
+        );
+        return domainToSave;
     }
 
-    async _addToNbFetchToDomain(domain, nbFetch = 1) {
-        let domainToSave = await this.getDomain(domain);
-        if(!domainToSave)
+    async _addToNbFetchToDomain( domain, nbFetch = 1 ) {
+        let domainToSave = await this.getDomain( domain );
+        if ( !domainToSave )
             domainToSave = new this.__DomainModel();
         domainToSave._id = domain;
         domainToSave.domain = domain;
         domainToSave.nbFetch = (domainToSave.nbFetch || 0) + nbFetch;
-        domainToSave.score = this.config.domainScoreFunction(domainToSave.domain, domainToSave.nbFetch);
+        domainToSave.score = this.config.domainScoreFunction( domainToSave.domain, domainToSave.nbFetch );
 
         await domainToSave.save();
-        return  domainToSave;
+        return domainToSave;
     }
 
-    async getDomain(domain) {
-        return this.__DomainModel.findById(domain);
+    async getDomain( domain ) {
+        return this.__DomainModel.findById( domain );
     }
 
-    async createOrUpdatePage({
+    async createOrUpdatePage( {
         url,
-        domain = getDomain(url), // domain used to create, or updated domain if saveDomain option is to true
+        domain = getDomain( url ), // domain used to create, or updated domain if saveDomain option is to true
         fetchDate = null,
         fetched = null,
         fetching = null,
@@ -97,24 +104,25 @@ class MongoManager {
         error = null,
         errorMessage = null
     }, { // - OPTIONS
-        saveDomain = true // if saveDomain is true, is use domain or the url to create an domain or updated if exist
-    } = {}) {
-        if(!domain) {
-            const err =  new Error(`Domain recovery failed on url ${url}`);
+        saveDomain = false, // if saveDomain is true, is use domain or the url to create an domain or updated if exist
+        addOneToDomain = false // if saveDomain is true, is use domain or the url to create an domain or updated if exist
+    } = {} ) {
+        if ( !domain ) {
+            const err = new Error( `Domain recovery failed on url ${url}` );
             err.code = 6001;
             throw err;
         }
 
-        const page = {url, domain};
-        if(fetchDate !== null) page.fetchDate = fetchDate;
-        if(fetched !== null) page.fetched = fetched;
-        if(fetching !== null) page.fetching = fetching;
-        if(match !== null) page.match = match;
-        if(matchTags !== null) page.matchTags = matchTags;
-        if(fetchInterest !== null) page.fetchInterest = fetchInterest;
-        if(language !== null) page.language = language;
-        if(error !== null) page.error = error;
-        if(errorMessage !== null) page.errorMessage = errorMessage;
+        const page = { url, domain };
+        if ( fetchDate !== null ) page.fetchDate = fetchDate;
+        if ( fetched !== null ) page.fetched = fetched;
+        if ( fetching !== null ) page.fetching = fetching;
+        if ( match !== null ) page.match = match;
+        if ( matchTags !== null ) page.matchTags = matchTags;
+        if ( fetchInterest !== null ) page.fetchInterest = fetchInterest;
+        if ( language !== null ) page.language = language;
+        if ( error !== null ) page.error = error;
+        if ( errorMessage !== null ) page.errorMessage = errorMessage;
 
         await this.__PageModel.updateOne(
             { url },
@@ -125,15 +133,18 @@ class MongoManager {
             }
         );
 
-        if(saveDomain && fetched && !page.fetched)
-            await this._addToNbFetchToDomain(domain);
+        if ( saveDomain )
+            await this.createOrUpdateDomain( { domain } );
+
+        if ( addOneToDomain )
+            await this._addToNbFetchToDomain( domain );
     }
 
-    async getPage(url) {
-        return this.__PageModel.findOne({url});
+    async getPage( url ) {
+        return this.__PageModel.findOne( { url } );
     }
 
-    async getBestPageToFetch(minimumScore = null) {
+    async getBestPageToFetch( minimumScore = null ) {
         const query = [
             {
                 '$match': {
@@ -174,34 +185,35 @@ class MongoManager {
             }
         ];
 
-        if(minimumScore) {
-            query.push({
+        if ( minimumScore ) {
+            query.push( {
                 '$match': {
                     'score': {
                         '$gt': minimumScore
                     }
                 }
-            });
+            } );
         }
-        query.push({
+        query.push( {
             '$sort': {
                 'score': -1
             }
-        });
-        query.push({
+        } );
+        query.push( {
             '$limit': 1
-        });
-        const res = await this.__PageModel.aggregate(query).exec();
-        return head(res);
+        } );
+        const res = await this.__PageModel.aggregate( query ).exec();
+        return head( res );
     }
 
-    log(...texts) {
+    log( ...texts ) {
         const date = new Date();
-        console.log(`[${date.toISOString()}] MongoManager ${this.id}: `, ...texts);
+        console.log( `[${date.toISOString()}] MongoManager ${this.id}: `, ...texts );
     }
-    debugLog(...texts) {
-        if(this.config.debug)
-            this.log(...texts);
+
+    debugLog( ...texts ) {
+        if ( this.config.debug )
+            this.log( ...texts );
     }
 }
 

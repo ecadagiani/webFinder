@@ -57,7 +57,7 @@ class PluginTest extends WebFinderPlugin {
      * @param {string} pageData.url - the page url
      * @param {Array<linkObject>} pageData.links - An object with the key {href, domain, texts, interestScore} for each link in fetched page
      */
-    onPageIsFetched( pageData ) {
+    async onPageIsFetched( pageData ) {
     }
 
     /**
