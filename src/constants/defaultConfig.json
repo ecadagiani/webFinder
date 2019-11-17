@@ -1,5 +1,6 @@
 {
     "debug": false,
+    "showPluginTimeoutError": true,
     "throwError": false,
     "loop": true,
     "nbCrawler": 1,
