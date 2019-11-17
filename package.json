@@ -29,7 +29,8 @@
     "lodash": "^4.17.15",
     "mongoose": "^5.7.11",
     "puppeteer": "^1.20.0",
-    "saslprep": "^1.0.3"
+    "saslprep": "^1.0.3",
+    "semaphore": "^1.1.0"
   },
   "devDependencies": {
     "eslint": "^6.6.0",

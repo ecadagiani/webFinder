@@ -21,12 +21,13 @@ async function __tryToGetNewLink( previousFetchedPage, errorCount = 0 ) {
 
 
 async function __getNewLink( previousFetchedPage = [] ) {
-    let futurPage = null;
 
+    // Plugin
     const pluginsNewLink = await this.__runPlugins( 'setNewLink', previousFetchedPage );
     const pluginNewUrl = find( pluginsNewLink || [], url => typeof url === 'string' );
     if ( pluginNewUrl ) return pluginNewUrl;
 
+    // Get Domain Score
     const allDomains = uniq( previousFetchedPage.map( x => x.domain ).filter( x => !!x ) );
     const domainsDb = await Promise.map( allDomains, domain => this.mongoManager.getDomain( domain ) );
     const domainScore = domainsDb
@@ -35,8 +36,11 @@ async function __getNewLink( previousFetchedPage = [] ) {
             obj[domain.domain] = domain.score;
             return obj;
         }, {} );
+    let futurPage = null;
 
-    futurPage = chain( previousFetchedPage )
+    // Prepare previous Page
+    const mongoPreviousPage = await this.mongoManager.getPages( previousFetchedPage.map( ( { url } ) => url ) );
+    futurPage = chain( mongoPreviousPage )
         .map( page => ({
             fetched: page.fetched,
             fetching: page.fetched,
@@ -44,8 +48,7 @@ async function __getNewLink( previousFetchedPage = [] ) {
             score: page.fetchInterest + (get( domainScore, page.domain ) || 0),
         }) )
         .filter( page =>
-            !page.fetched
-            && !page.fetching
+            !page.fetching && !page.fetched
             && page.score > this.config.interestMinimumScoreToContinue
         )
         .orderBy( ['score'], ['desc'] )
@@ -53,12 +56,12 @@ async function __getNewLink( previousFetchedPage = [] ) {
         .value();
 
     // if we have fetched a link with a correct score (interestMinimumScoreToContinue), we return this
-    if ( futurPage )
+    if ( get( futurPage, 'url' ) )
         return futurPage.url;
 
     // if we have zero valid links, we get new link from mongo, but with a decent score (interestMinimumScoreToFetchDb)
     futurPage = await this.mongoManager.getBestPageToFetch( this.config.interestMinimumScoreToFetchDb );
-    if ( futurPage )
+    if ( get( futurPage, 'url' ) )
         return futurPage.url;
 
 
@@ -77,7 +80,7 @@ async function __getNewLink( previousFetchedPage = [] ) {
 
     // if searchEngine link have already been fetch, we get link from mongo without decent score
     futurPage = await this.mongoManager.getBestPageToFetch();
-    if ( futurPage )
+    if ( get( futurPage, 'url' ) )
         return futurPage.url;
 
     return null;

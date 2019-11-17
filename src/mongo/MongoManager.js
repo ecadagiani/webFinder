@@ -1,5 +1,6 @@
 const mongoose = require( 'mongoose' );
 const { head } = require( 'lodash' );
+const createSemaphore = require('semaphore');
 const { wait } = require( '@ecadagiani/jstools' );
 const PageSchema = require( './PageSchema' );
 const DomainSchema = require( './DomainSchema' );
@@ -7,6 +8,8 @@ const { getDomain } = require( '../lib/tools' );
 
 mongoose.set( 'useUnifiedTopology', true );
 mongoose.set( 'useFindAndModify', false );
+
+const domainUpdateScoreSemaphore = createSemaphore(1);
 
 class MongoManager {
     constructor( { mongo, domainScoreFunction, debug }, id ) {
@@ -74,19 +77,22 @@ class MongoManager {
         return domainToSave;
     }
 
-    async _addToNbFetchToDomain( domain, nbFetch = 1 ) {
-        let mongoDomain = await this.getDomain( domain );
-        await this.__DomainModel.findOneAndUpdate(
-            {domain},
-            {
-                $inc: {'nbFetch' : nbFetch},
-                score: this.config.domainScoreFunction( domain, mongoDomain.nbFetch + nbFetch )
-            },
-            {
-                setDefaultsOnInsert: true,
-                upsert: true,
-            }
-        );
+    _addToNbFetchToDomain( domain, nbFetch = 1 ) {
+        domainUpdateScoreSemaphore.take(async () => {
+            let mongoDomain = await this.getDomain( domain );
+            await this.__DomainModel.findOneAndUpdate(
+                {domain},
+                {
+                    $inc: {'nbFetch' : nbFetch},
+                    score: this.config.domainScoreFunction( domain, mongoDomain.nbFetch + nbFetch )
+                },
+                {
+                    setDefaultsOnInsert: true,
+                    upsert: true,
+                }
+            );
+            domainUpdateScoreSemaphore.leave();
+        });
     }
 
     async getDomain( domain ) {
@@ -144,6 +150,12 @@ class MongoManager {
 
     async getPage( url ) {
         return this.__PageModel.findOne( { url } );
+    }
+
+    async getPages( urls ) {
+        return this.__PageModel.find({
+            'url': { $in: urls}
+        });
     }
 
     async getBestPageToFetch( minimumScore = null ) {
