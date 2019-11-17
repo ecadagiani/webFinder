@@ -179,7 +179,8 @@ class Crawler {
                 try {
                     res = await promiseFunction( plugin[pluginMethod] )( ...params ).timeout( this.config.pluginTimeout );
                 } catch ( e ) {
-                    this.logError( 'Plugin timed out' );
+                    if(this.config.showPluginTimeoutError)
+                        this.logError( 'Plugin timed out' );
                 }
                 return res;
             }
