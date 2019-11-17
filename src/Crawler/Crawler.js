@@ -51,7 +51,7 @@ class Crawler {
 
     async init() {
         this.__setStatus( Crawler.statusType.initialising );
-        await this.initBrowser( );
+        await this.initBrowser();
 
         if ( this.page && !this.page.isClosed() )
             await this.page.close();
@@ -67,7 +67,7 @@ class Crawler {
     }
 
 
-    async initBrowser ( ) {
+    async initBrowser() {
         const browserOptions = {
             args: [`--lang=${this.config.browserLanguage}`],
             ...this.config.browserOptions
@@ -82,7 +82,7 @@ class Crawler {
     }
 
 
-    async closeBrowser ()  {
+    async closeBrowser() {
         if ( this.browser )
             await this.browser.close();
         this.browser = null;
@@ -90,7 +90,7 @@ class Crawler {
 
 
     async __runningReinit() {
-        await this.initBrowser( );
+        await this.initBrowser();
         if ( this.page && !this.page.isClosed() )
             await this.page.close();
         this.page = await this.browser.newPage();
@@ -159,7 +159,7 @@ class Crawler {
         this.logTime( 'time to complete getNewLink' );
         const newUrl = await this.__tryToGetNewLink( fetchedPages );
         await this.__runPlugins( 'onNewLink', newUrl );
-        this.logTimeEnd( 'time to complete getNewLink');
+        this.logTimeEnd( 'time to complete getNewLink' );
 
         this.logTimeEnd( 'time to complete loop' );
         const timeToFetch = performance.now() - loopStart;
@@ -178,7 +178,7 @@ class Crawler {
                 try {
                     res = await promiseFunction( plugin[pluginMethod] )( ...params ).timeout( this.config.pluginTimeout );
                 } catch ( e ) {
-                    this.logError( e );
+                    this.logError( 'Plugin timed out' );
                 }
                 return res;
             }
