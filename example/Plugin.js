@@ -50,12 +50,16 @@ class PluginTest extends WebFinderPlugin {
         const result = await page.evaluate( () => {
             return window.hasOwnProperty( '__REACT_DEVTOOLS_GLOBAL_HOOK__' );
         } );
-        return !!result;
+        return {
+            match: !!result,
+            matchTags: result ? ['react'] : [],
+        };
     }
 
     /**
      * After an page was fetched
      * @param {boolean} pageData.match - if the page was matched or not
+     * @param {Array<string>} pageData.matchTags - the matched tags
      * @param {string} pageData.language - the page language
      * @param {Array<linkObject>} pageData.links - An object with the key {href, domain, texts, interestScore} for each link in fetched page
      */

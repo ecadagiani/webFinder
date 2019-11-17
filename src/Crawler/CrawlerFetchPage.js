@@ -1,4 +1,4 @@
-const { chain, get } = require( 'lodash' );
+const { chain, get, uniq } = require( 'lodash' );
 const { wait, getUrlParts } = require( '@ecadagiani/jstools' );
 
 const { basicNavigationErrorCode } = require( '../constants/crawlerconstants' );
@@ -87,7 +87,7 @@ async function _fetchPageData() {
             .map( ( { matchTags } ) => matchTags )
             .flatten()
             .value();
-        const matchTags = [...matchTagsSelectors, ...matchTagsPlugins];
+        const matchTags = uniq([...matchTagsSelectors, ...matchTagsPlugins]);
 
         return {
             match, matchTags

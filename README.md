@@ -1,6 +1,8 @@
 # webFinder
-WebFinder is a highly configurable crawler on puppeteer to find specific
-page on the web.
+WebFinder is a highly configurable crawler on puppeteer, run in docker, 
+to match specific page on the web.
+
+[DockerHub - webFinder](https://hub.docker.com/repository/docker/ecadagiani/webfinder)
 
 WORK IN PROGRESS
 
@@ -11,6 +13,7 @@ WORK IN PROGRESS
 
 ## Usage
 
+[Puppeteer docs](https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md)
 
 ## Configuration
 There is the default config
@@ -198,6 +201,7 @@ class PluginTest extends WebFinderPlugin {
     /**
      * After an page was fetched
      * @param {boolean} pageData.match - if the page was matched or not
+     * @param {Array<string>} pageData.matchTags - the matched tags
      * @param {string} pageData.language - the page language
      * @param {Array<linkObject>} pageData.links - An object with the key {href, domain, texts, interestScore} for each link in fetched page
      */
@@ -230,13 +234,19 @@ module.exports = PluginTest;
  */
 ```
 
-NB: Every Crawler will have an instance of your plugins.
-NB 2: You can use lodash or bluebird in your plugin
+> Every Crawler will have an instance of your plugins.
+>
+> You can use [lodash](https://lodash.com/docs) or [bluebird](http://bluebirdjs.com/) in your plugin
+>
+> Every method can be **async**
+
+## Issue
+- An container of devtools image, cannot be re-launched if
+the container has not been down before
 
 ## ToDo
 - make a beautiful readMe
 - correct english of readme
-- update plugin to permit match on network analysis
 
 ## Authors
 - **Eden Cadagiani** ([HelloMyBot](https://hellomybot.io/fr/bienvenue/))
