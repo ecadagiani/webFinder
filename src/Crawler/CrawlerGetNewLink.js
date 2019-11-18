@@ -61,14 +61,26 @@ async function __getNewLink( previousFetchedPage = [] ) {
 
     // if we have fetched a link with a correct score (interestMinimumScoreToContinue), we return this
     if ( get( futurPage, 'url' ) ) {
-        this.logDebug( 'new link resolved by previous links: ', futurPage );
+        this.logDebug( 'New link resolved by previous links: ', futurPage );
         return futurPage.url;
+    }
+    
+    // log debug
+    if ( this.config.debug ) {
+        this.logDebug( 'The best previous page, did not have a sufficient score, his score was: ',
+            chain( mongoPreviousPage )
+                .map( page => ({score: page.fetchInterest + (get( domainScore, page.domain ) || 0)}))
+                .orderBy( ['score'], ['desc'] )
+                .head()
+                .value()
+                .score
+        );
     }
 
     // if we have zero valid links, we get new link from mongo, but with a decent score (interestMinimumScoreToFetchDb)
     futurPage = await this.mongoManager.getBestPageToFetch( this.config.interestMinimumScoreToFetchDb );
     if ( get( futurPage, 'url' ) ) {
-        this.logDebug( 'new link resolved by best page from mongo: ', futurPage );
+        this.logDebug( 'New link resolved by best page from mongo: ', futurPage );
         return futurPage.url;
     }
 
@@ -82,7 +94,7 @@ async function __getNewLink( previousFetchedPage = [] ) {
             !searchEngineLink
             || Date.now() - (get( searchEngineLinkMongo, 'fetchDate' ) || new Date()).getTime() > 15 * 24 * 60 * 60 * 1000
         ) {
-            this.logDebug( 'new link resolved by search link: ', searchEngineLink );
+            this.logDebug( 'New link resolved by search link: ', searchEngineLink );
             return searchEngineLink;
         }
     }
@@ -91,7 +103,7 @@ async function __getNewLink( previousFetchedPage = [] ) {
     // if searchEngine link have already been fetch, we get link from mongo without decent score
     futurPage = await this.mongoManager.getBestPageToFetch();
     if ( get( futurPage, 'url' ) ) {
-        this.logDebug( 'new link resolved by page from mongo: ', futurPage );
+        this.logDebug( 'New link resolved by page from mongo: ', futurPage );
         return futurPage.url;
     }
 
