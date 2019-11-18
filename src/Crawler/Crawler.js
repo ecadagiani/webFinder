@@ -90,10 +90,12 @@ class Crawler {
 
 
     async __runningReinit() {
+        this.logDebug('reinit');
         await this.initBrowser();
         if ( this.page && !this.page.isClosed() )
             await this.page.close();
         this.page = await this.browser.newPage();
+        this.__runPlugins( 'onReinit' );
     }
 
 
@@ -135,7 +137,7 @@ class Crawler {
             this.__setStatus( Crawler.statusType.running );
             await this.__runPlugins( 'onStart' );
             const startUrl = Array.isArray( this.config.start ) ? this.config.start[this.id - 1] : this.config.start;
-            this.__loop(startUrl);
+            this.__loop( startUrl );
         } else
             this.error( 'no start link in config - you can add "start": "mylink.com" to config file' );
     }
@@ -179,7 +181,7 @@ class Crawler {
                 try {
                     res = await promiseFunction( plugin[pluginMethod] )( ...params ).timeout( this.config.pluginTimeout );
                 } catch ( e ) {
-                    if(this.config.showPluginTimeoutError)
+                    if ( this.config.showPluginTimeoutError )
                         this.logError( 'Plugin timed out' );
                 }
                 return res;

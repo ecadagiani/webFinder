@@ -28,6 +28,12 @@ class WebFinderPlugin {
     }
 
     /**
+     * When crawler reinit
+     */
+    onReinit() {
+    }
+
+    /**
      * Before a page was fetched
      * @param {string} url - page url
      */

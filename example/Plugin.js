@@ -7,6 +7,7 @@ class PluginTest extends WebFinderPlugin {
         this.onInit = this.onInit.bind( this );
         this.onStart = this.onStart.bind( this );
         this.onStop = this.onStop.bind( this );
+        this.onReinit = this.onReinit.bind( this );
         this.onFetchPage = this.onFetchPage.bind( this );
         this.match = this.match.bind( this );
         this.onPageIsFetched = this.onPageIsFetched.bind( this );
@@ -30,6 +31,12 @@ class PluginTest extends WebFinderPlugin {
      * When stop is send to the crawler
      */
     onStop() {
+    }
+
+    /**
+     * When crawler reinit
+     */
+    onReinit() {
     }
 
     /**

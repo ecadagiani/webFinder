@@ -2,7 +2,7 @@
     "debug": false,
     "showPluginTimeoutError": true,
     "throwError": false,
-    "loop": true,
+    "loop": false,
     "nbCrawler": 1,
     "start": "",
     "searchSelectors": [],

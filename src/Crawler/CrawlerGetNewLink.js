@@ -25,7 +25,10 @@ async function __getNewLink( previousFetchedPage = [] ) {
     // Plugin
     const pluginsNewLink = await this.__runPlugins( 'setNewLink', previousFetchedPage );
     const pluginNewUrl = find( pluginsNewLink || [], url => typeof url === 'string' );
-    if ( pluginNewUrl ) return pluginNewUrl;
+    if ( pluginNewUrl ) {
+        this.logDebug( 'new link resolved by plugin: ', pluginNewUrl );
+        return pluginNewUrl;
+    }
 
     // Get Domain Score
     const allDomains = uniq( previousFetchedPage.map( x => x.domain ).filter( x => !!x ) );
@@ -36,6 +39,7 @@ async function __getNewLink( previousFetchedPage = [] ) {
             obj[domain.domain] = domain.score;
             return obj;
         }, {} );
+
     let futurPage = null;
 
     // Prepare previous Page
@@ -56,13 +60,17 @@ async function __getNewLink( previousFetchedPage = [] ) {
         .value();
 
     // if we have fetched a link with a correct score (interestMinimumScoreToContinue), we return this
-    if ( get( futurPage, 'url' ) )
+    if ( get( futurPage, 'url' ) ) {
+        this.logDebug( 'new link resolved by previous links: ', futurPage );
         return futurPage.url;
+    }
 
     // if we have zero valid links, we get new link from mongo, but with a decent score (interestMinimumScoreToFetchDb)
     futurPage = await this.mongoManager.getBestPageToFetch( this.config.interestMinimumScoreToFetchDb );
-    if ( get( futurPage, 'url' ) )
+    if ( get( futurPage, 'url' ) ) {
+        this.logDebug( 'new link resolved by best page from mongo: ', futurPage );
         return futurPage.url;
+    }
 
 
     // if we don't have a decent link in mongo, we find new links with config searchEngineUrl
@@ -73,15 +81,19 @@ async function __getNewLink( previousFetchedPage = [] ) {
         if (
             !searchEngineLink
             || Date.now() - (get( searchEngineLinkMongo, 'fetchDate' ) || new Date()).getTime() > 15 * 24 * 60 * 60 * 1000
-        )
+        ) {
+            this.logDebug( 'new link resolved by search link: ', searchEngineLink );
             return searchEngineLink;
+        }
     }
 
 
     // if searchEngine link have already been fetch, we get link from mongo without decent score
     futurPage = await this.mongoManager.getBestPageToFetch();
-    if ( get( futurPage, 'url' ) )
+    if ( get( futurPage, 'url' ) ) {
+        this.logDebug( 'new link resolved by page from mongo: ', futurPage );
         return futurPage.url;
+    }
 
     return null;
 }
