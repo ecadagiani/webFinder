@@ -35,6 +35,8 @@ class Crawler {
         this.__getRandomSearchEngineLink = __getRandomSearchEngineLink.bind( this );
         this.__getNewLink = __getNewLink.bind( this );
         this.__tryToGetNewLink = __tryToGetNewLink.bind( this );
+
+        this.logDebug( 'create in debug mode' );
     }
 
 
@@ -90,7 +92,7 @@ class Crawler {
 
 
     async __runningReinit() {
-        this.logDebug('reinit');
+        this.logDebug( 'reinit' );
         await this.initBrowser();
         if ( this.page && !this.page.isClosed() )
             await this.page.close();
