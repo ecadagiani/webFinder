@@ -38,7 +38,7 @@ async function fetchLinks( page, { domainWhitelist, crawlInvisibleLink, authoriz
         .mapValues( ( values, key ) => {
             return {
                 href: key,
-                domain: values[0].domain,
+                domain: values[0].hostname,
                 texts: chain( values )
                     .map( x => x.texts )
                     .flattenDeep()
