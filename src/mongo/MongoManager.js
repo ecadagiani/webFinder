@@ -1,6 +1,6 @@
 const mongoose = require( 'mongoose' );
 const { head } = require( 'lodash' );
-const createSemaphore = require('semaphore');
+const createSemaphore = require( 'semaphore' );
 const { wait } = require( '@ecadagiani/jstools' );
 const PageSchema = require( './PageSchema' );
 const DomainSchema = require( './DomainSchema' );
@@ -9,7 +9,7 @@ const { getDomain } = require( '../lib/tools' );
 mongoose.set( 'useUnifiedTopology', true );
 mongoose.set( 'useFindAndModify', false );
 
-const domainUpdateScoreSemaphore = createSemaphore(1);
+const domainUpdateScoreSemaphore = createSemaphore( 1 );
 
 class MongoManager {
     constructor( { mongo, domainScoreFunction, debug }, id ) {
@@ -78,12 +78,12 @@ class MongoManager {
     }
 
     _addToNbFetchToDomain( domain, nbFetch = 1 ) {
-        domainUpdateScoreSemaphore.take(async () => {
+        domainUpdateScoreSemaphore.take( async () => {
             let mongoDomain = await this.getDomain( domain );
             await this.__DomainModel.findOneAndUpdate(
-                {domain},
+                { domain },
                 {
-                    $inc: {'nbFetch' : nbFetch},
+                    $inc: { 'nbFetch': nbFetch },
                     score: this.config.domainScoreFunction( domain, mongoDomain.nbFetch + nbFetch )
                 },
                 {
@@ -92,7 +92,7 @@ class MongoManager {
                 }
             );
             domainUpdateScoreSemaphore.leave();
-        });
+        } );
     }
 
     async getDomain( domain ) {
@@ -153,9 +153,9 @@ class MongoManager {
     }
 
     async getPages( urls ) {
-        return this.__PageModel.find({
-            'url': { $in: urls}
-        });
+        return this.__PageModel.find( {
+            'url': { $in: urls }
+        } );
     }
 
     async getBestPageToFetch( minimumScore = null ) {
@@ -218,6 +218,19 @@ class MongoManager {
         } );
         const res = await this.__PageModel.aggregate( query ).exec();
         return head( res );
+    }
+
+
+    async isFirstMatchDomain( domain ) {
+        const res = await this.__PageModel.aggregate( [
+            {
+                '$match': {
+                    'match': true,
+                    'domain': domain,
+                }
+            }
+        ] ).exec();
+        return res.length === 0;
     }
 
     log( ...texts ) {
