@@ -5,7 +5,7 @@ global.Promise = require( 'bluebird' );
 
 const Crawler = require( './Crawler/Crawler' );
 // eslint-disable-next-line node/no-missing-require
-const config = require( '../config' );
+const config = require( '../config.json' );
 
 
 const app = express();
