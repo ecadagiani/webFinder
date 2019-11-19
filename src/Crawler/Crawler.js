@@ -36,7 +36,7 @@ class Crawler {
         this.__getNewLink = __getNewLink.bind( this );
         this.__tryToGetNewLink = __tryToGetNewLink.bind( this );
 
-        this.logDebug( 'create in debug mode' );
+        this.logDebug( 'debug mode' );
     }
 
 

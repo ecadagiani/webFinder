@@ -1,5 +1,6 @@
 const { get, chain, template, uniq, find } = require( 'lodash' );
 const { getRndInteger, drawWithoutDuplicate } = require( '@ecadagiani/jstools' );
+const { searchEngineUrl } = require( '../constants/crawlerconstants' );
 
 async function __tryToGetNewLink( previousFetchedPage, errorCount = 0 ) {
     let url = null;
@@ -22,7 +23,7 @@ async function __tryToGetNewLink( previousFetchedPage, errorCount = 0 ) {
 
 async function __getNewLink( previousFetchedPage = [] ) {
 
-    // Plugin
+    /* process by PLUGIN -------------------- */
     const pluginsNewLink = await this.__runPlugins( 'setNewLink', previousFetchedPage );
     const pluginNewUrl = find( pluginsNewLink || [], url => typeof url === 'string' );
     if ( pluginNewUrl ) {
@@ -30,32 +31,13 @@ async function __getNewLink( previousFetchedPage = [] ) {
         return pluginNewUrl;
     }
 
-    // Get Domain Score
-    const allDomains = uniq( previousFetchedPage.map( x => x.domain ).filter( x => !!x ) );
-    const domainsDb = await Promise.map( allDomains, domain => this.mongoManager.getDomain( domain ) );
-    const domainScore = domainsDb
-        .filter( x => !!x )
-        .reduce( ( obj, domain ) => {
-            obj[domain.domain] = domain.score;
-            return obj;
-        }, {} );
-
+    /* process by PREVIOUS PAGE -------------------- */
     let futurPage = null;
 
     // Prepare previous Page
-    const mongoPreviousPage = await this.mongoManager.getPages( previousFetchedPage.map( ( { url } ) => url ) );
+    const mongoPreviousPage = await this.mongoManager.getPreviousPagesData( previousFetchedPage.map( ( { url } ) => url ) );
     futurPage = chain( mongoPreviousPage )
-        .map( page => ({
-            fetched: page.fetched,
-            fetching: page.fetched,
-            url: page.url,
-            score: page.fetchInterest + (get( domainScore, page.domain ) || 0),
-        }) )
-        .filter( page =>
-            !page.fetching && !page.fetched
-            && page.score > this.config.interestMinimumScoreToContinue
-        )
-        .orderBy( ['score'], ['desc'] )
+        .filter( page => page.score > this.config.interestMinimumScoreToContinue )
         .head()
         .value();
 
@@ -63,20 +45,13 @@ async function __getNewLink( previousFetchedPage = [] ) {
     if ( get( futurPage, 'url' ) ) {
         this.logDebug( 'New link resolved by previous links: ', futurPage );
         return futurPage.url;
-    }
-    
-    // log debug
-    if ( this.config.debug ) {
+    } else if ( this.config.debug ) { // log debug
         this.logDebug( 'The best previous page, did not have a sufficient score, his score was: ',
-            chain( mongoPreviousPage )
-                .map( page => ({score: page.fetchInterest + (get( domainScore, page.domain ) || 0)}))
-                .orderBy( ['score'], ['desc'] )
-                .head()
-                .value()
-                .score
+            get(mongoPreviousPage, '0.score')
         );
     }
 
+    /* process by BEST PAGE FROM MONGO -------------------- */
     // if we have zero valid links, we get new link from mongo, but with a decent score (interestMinimumScoreToFetchDb)
     futurPage = await this.mongoManager.getBestPageToFetch( this.config.interestMinimumScoreToFetchDb );
     if ( get( futurPage, 'url' ) ) {
@@ -85,21 +60,20 @@ async function __getNewLink( previousFetchedPage = [] ) {
     }
 
 
-    // if we don't have a decent link in mongo, we find new links with config searchEngineUrl
-    if ( this.config.searchEngineUrl ) {
-        const searchEngineLink = this.__getRandomSearchEngineLink();
-        const searchEngineLinkMongo = await this.mongoManager.getPage( searchEngineLink );
-        // if duckduckgo links is not present in mongo or if it was fetched more than 15 days ago
-        if (
-            !searchEngineLink
-            || Date.now() - (get( searchEngineLinkMongo, 'fetchDate' ) || new Date()).getTime() > 15 * 24 * 60 * 60 * 1000
-        ) {
-            this.logDebug( 'New link resolved by search link: ', searchEngineLink );
-            return searchEngineLink;
-        }
+    /* process by SEARCH ENGINE -------------------- */
+    const searchEngineLink = this.__getRandomSearchEngineLink();
+    const searchEngineLinkMongo = await this.mongoManager.getPage( searchEngineLink );
+    // if duckduckgo links is not present in mongo or if it was fetched more than 15 days ago
+    if (
+        !searchEngineLinkMongo
+        || Date.now() - (get( searchEngineLinkMongo, 'fetchDate' ) || new Date()).getTime() > 15 * 24 * 60 * 60 * 1000
+    ) {
+        this.logDebug( 'New link resolved by search link: ', searchEngineLink );
+        return searchEngineLink;
     }
 
 
+    /* process by PAGE FROM MONGO -------------------- */
     // if searchEngine link have already been fetch, we get link from mongo without decent score
     futurPage = await this.mongoManager.getBestPageToFetch();
     if ( get( futurPage, 'url' ) ) {
@@ -112,19 +86,21 @@ async function __getNewLink( previousFetchedPage = [] ) {
 
 
 function __getRandomSearchEngineLink() {
-    const { searchTags, maxCombinationSearchTags } = this.config;
+    const { searchTags, maxCombinationSearchTags, offsetMaxSearchEngine } = this.config;
     const nbTagsToDraw = getRndInteger(
         1,
         searchTags.length < maxCombinationSearchTags ? searchTags.length : maxCombinationSearchTags
     );
 
     const resTags = drawWithoutDuplicate( searchTags, nbTagsToDraw );
-
+    const offset = getRndInteger( 0, Math.round( offsetMaxSearchEngine / 10 ) ) * 10;
     let url = null;
     try {
-        const compiled = template( this.config.searchEngineUrl );
-        url = compiled( { query: resTags.join( '+' ) } );
-    } catch ( e ) {
+        const compiled = template( searchEngineUrl );
+        url = compiled( { query: resTags.join( '+' ), offset } );
+    } catch ( err ) {
+        if ( this.config.throwError )
+            throw err;
         return null;
     }
     return url;

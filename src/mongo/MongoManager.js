@@ -152,10 +152,52 @@ class MongoManager {
         return this.__PageModel.findOne( { url } );
     }
 
-    async getPages( urls ) {
-        return this.__PageModel.find( {
-            'url': { $in: urls }
-        } );
+    async getPreviousPagesData( urls ) {
+        const query = [
+            {
+                '$match': {
+                    'fetched': false,
+                    'fetching': false,
+                    'error': false,
+                    'url': { '$in': urls }
+                }
+            }, {
+                '$lookup': {
+                    'from': 'domains',
+                    'localField': 'domain',
+                    'foreignField': 'domain',
+                    'as': 'domainObject'
+                }
+            }, {
+                '$project': {
+                    'url': '$url',
+                    'fetchInterest': '$fetchInterest',
+                    'domain': {
+                        '$arrayElemAt': [
+                            '$domainObject', 0
+                        ]
+                    }
+                }
+            }, {
+                '$project': {
+                    'url': '$url',
+                    'score': {
+                        '$add': [
+                            '$fetchInterest', {
+                                '$ifNull': [
+                                    '$domain.score', 0
+                                ]
+                            }
+                        ]
+                    }
+                }
+            }, {
+                '$sort': {
+                    'score': -1
+                }
+            }
+        ];
+        return this.__PageModel.aggregate( query ).exec();
     }
 
     async getBestPageToFetch( minimumScore = null ) {
@@ -199,7 +241,7 @@ class MongoManager {
             }
         ];
 
-        if ( minimumScore ) {
+        if ( typeof minimumScore === "number" ) {
             query.push( {
                 '$match': {
                     'score': {

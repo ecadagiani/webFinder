@@ -203,7 +203,7 @@ async function fetchPage( url ) {
     ];
     await Promise.map( pages, ( { data, options } ) => this.mongoManager.createOrUpdatePage( data, options ) );
     this.logTimeEnd( 'time to save data in mongo' );
-    return pages;
+    return pages.map( ( { data } ) => data );
 }
 
 module.exports = {

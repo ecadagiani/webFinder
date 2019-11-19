@@ -25,8 +25,7 @@
     "maxUrlLength": 800,
     "timeBetweenTwoFetch": 1000,
     "crawlInvisibleLink": false,
-    "searchEngineUrl": "https://duckduckgo.com?q=${query}",
-    "domainScoreFunction": "(domain, nbFetch) => domain === 'duckduckgo.com' ? 0 : (nbFetch < 50 ? 0 : Math.floor( (nbFetch-50) * -5 ))",
+    "domainScoreFunction": "(domain, nbFetch) => nbFetch < 50 ? 0 : Math.floor( (nbFetch-50) * -5 )",
     "interestMinimumScoreToContinue": 0,
     "interestMinimumScoreToFetchDb": 0,
     "interestRandRange": {
@@ -58,31 +57,17 @@
     "interestTag": [],
     "interestTagDefaultImpact": 1,
     "mergeInterestTag": true,
-    "uninterestingTag": [
-        {
-            "tag": "admin",
-            "impact": -1
-        },
-        "password",
-        "register",
-        "registration",
-        "login",
-        "identifier",
-        "connecter",
-        "wishlist,",
-        "filter",
-        "limit",
-        "order",
-        "sort",
-        "add"
-    ],
+    "uninterestingTag": [],
     "uninterestingTagDefaultImpact": -1,
     "mergeUninterestTag": true,
     "interestTagUrl": [],
     "interestTagUrlDefaultImpact": 2,
     "mergeInterestTagUrl": true,
     "uninterestingTagUrl": [
-        "admin",
+        {
+            "tag": "admin",
+            "impact": -1
+        },
         "cart",
         "checkout",
         "favorite",
@@ -113,5 +98,6 @@
         "bar",
         "crawler"
     ],
-    "maxCombinationSearchTags": 0
+    "maxCombinationSearchTags": 2,
+    "offsetMaxSearchEngine": 100
 }

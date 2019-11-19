@@ -46,8 +46,7 @@ There is the default config
     "maxUrlLength": 800,
     "timeBetweenTwoFetch": 1000,
     "crawlInvisibleLink": false,
-    "searchEngineUrl": "https://duckduckgo.com?q=${query}",
-    "domainScoreFunction": "(domain, nbFetch) => domain === 'duckduckgo.com' ? 0 : (nbFetch < 50 ? 0 : Math.floor( (nbFetch-50) * -5 ))",
+    "domainScoreFunction": "(domain, nbFetch) => nbFetch < 50 ? 0 : Math.floor( (nbFetch-50) * -5 )",
     "interestMinimumScoreToContinue": 0,
     "interestMinimumScoreToFetchDb": 0,
     "interestRandRange": {
@@ -137,7 +136,8 @@ There is the default config
     "searchTags" : [
         "foo", "bar", "crawler"
     ],
-    "maxCombinationSearchTags": 0
+    "maxCombinationSearchTags": 0,
+    "offsetMaxSearchEngine": 100
 }
 ```
 
