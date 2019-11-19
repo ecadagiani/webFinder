@@ -1,13 +1,9 @@
 {
     "debug": true,
-    "throwError": false,
-    "loop": true,
-    "nbCrawler": 3,
-    "start": [
-        "https://www.zendesk.com/apps/directory/?q=&idx=appsIndex&p=0&hFR%5Bproducts%5D%5B0%5D=support&product=support",
-        "https://www.zendesk.com/suite/",
-        "https://www.zendesk.com/apps/directory/?q=&idx=appsIndex&p=0&hFR%5Bproducts%5D%5B0%5D=chat"
-    ],
+    "throwError": true,
+    "loop": false,
+    "nbCrawler": 1,
+    "start": "https://fr.reactjs.org/",
     "searchSelectors": [
         {
             "tag": "root",
@@ -30,7 +26,6 @@
             "--disable-setuid-sandbox",
             "--disable-dev-shm-usage"
         ],
-        "slowMo": 150,
         "devTools": true
     }
 }
