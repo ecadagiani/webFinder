@@ -7,6 +7,6 @@ const basicNavigationErrorCode = {
 };
 
 const searchEngineDomain = 'duckduckgo.com';
-const searchEngineUrl = "https://duckduckgo.com/lite?q=${query}&s=${offset}&dc=${offset}";
+const searchEngineUrl = "https://duckduckgo.com/lite?q=${query}&s=${offset}&dc=${offset}&kl=${language}";
 
 module.exports = { basicNavigationErrorCode, searchEngineDomain, searchEngineUrl };

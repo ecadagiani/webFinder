@@ -137,10 +137,12 @@ There is the default config
         "foo", "bar", "crawler"
     ],
     "maxCombinationSearchTags": 0,
-    "offsetMaxSearchEngine": 100
+    "offsetMaxSearchEngine": 100,
+    "searchEngineLanguage": "fr-fr"
 }
 ```
 
+> searchEngineLanguage option [here](https://duckduckgo.com/params)
 
 ## Plugin
 You can add plugins, just add them in `/app/src/plugins/` folder in the container.

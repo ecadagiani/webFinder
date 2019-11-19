@@ -1,7 +1,7 @@
 {
     "debug": true,
-    "throwError": true,
-    "loop": false,
+    "throwError": false,
+    "loop": true,
     "nbCrawler": 1,
     "start": "https://fr.reactjs.org/",
     "searchSelectors": [
@@ -27,5 +27,6 @@
             "--disable-dev-shm-usage"
         ],
         "devTools": true
-    }
+    },
+    "searchEngineLanguage": "fr-fr"
 }

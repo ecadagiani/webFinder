@@ -86,7 +86,7 @@ async function __getNewLink( previousFetchedPage = [] ) {
 
 
 function __getRandomSearchEngineLink() {
-    const { searchTags, maxCombinationSearchTags, offsetMaxSearchEngine } = this.config;
+    const { searchTags, maxCombinationSearchTags, offsetMaxSearchEngine, searchEngineLanguage } = this.config;
     const nbTagsToDraw = getRndInteger(
         1,
         searchTags.length < maxCombinationSearchTags ? searchTags.length : maxCombinationSearchTags
@@ -97,7 +97,11 @@ function __getRandomSearchEngineLink() {
     let url = null;
     try {
         const compiled = template( searchEngineUrl );
-        url = compiled( { query: resTags.join( '+' ), offset } );
+        url = compiled( {
+            query: resTags.join( '+' ),
+            language: searchEngineLanguage,
+            offset
+        } );
     } catch ( err ) {
         if ( this.config.throwError )
             throw err;

@@ -99,5 +99,6 @@
         "crawler"
     ],
     "maxCombinationSearchTags": 2,
-    "offsetMaxSearchEngine": 100
+    "offsetMaxSearchEngine": 100,
+    "searchEngineLanguage": "wt-wt"
 }
