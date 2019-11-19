@@ -1,8 +1,9 @@
-const { chain, get, uniq } = require( 'lodash' );
+const { chain, get, uniq, head } = require( 'lodash' );
 const { wait, getUrlParts } = require( '@ecadagiani/jstools' );
 
-const { basicNavigationErrorCode } = require( '../constants/crawlerconstants' );
+const { basicNavigationErrorCode, searchEngineDomain } = require( '../constants/crawlerconstants' );
 const { calculInterestScore } = require( './calculInterest' );
+const { getDomain } = require( '../lib/tools' );
 
 async function fetchLinks( page, { domainWhitelist, crawlInvisibleLink, authorizedLinksExtensions, maxUrlLength, authorizedURIScheme } ) {
     let links = await page.evaluate( () => {// get href and texts
@@ -65,11 +66,15 @@ async function checkSearchSelectors( page, { searchSelectors } ) {
 }
 
 
-async function getPageLanguage( page ) {
+async function getPageLanguage( page, url, {interestLanguage} ) {
+    if(getDomain( url ) === searchEngineDomain)
+        return head(interestLanguage);
+
     return await page.evaluate( () => {
         return document.documentElement.lang;
     } );
 }
+
 
 async function _fetchPageData( url ) {
     const getMatch = async () => {
@@ -98,7 +103,7 @@ async function _fetchPageData( url ) {
         // match,
         // matchTags,
         ...await getMatch(),
-        language: await getPageLanguage( this.page ),
+        language: await getPageLanguage( this.page, url, this.config ),
         links: await fetchLinks( this.page, this.config ),
     } );
 }
