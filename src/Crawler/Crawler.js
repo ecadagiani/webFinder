@@ -155,7 +155,6 @@ class Crawler {
             throw this.error( 'The crawler failed to find a valid url' );
 
         this.logTime( 'time to complete fetchPage' );
-        await this.__runPlugins( 'onFetchPage', url );
         const fetchedPages = await this.__tryToFetchPage( url );
         this.logTimeEnd( 'time to complete fetchPage' );
 

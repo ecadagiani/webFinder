@@ -138,6 +138,7 @@ async function __tryToFetchPage( url, errorCount = 0 ) {
 
 async function fetchPage( url ) {
     // access to the page and set page fetching
+    await this.__runPlugins( 'onFetchPage', url );
 
     this.logTime( 'time to navigate' );
     try {
