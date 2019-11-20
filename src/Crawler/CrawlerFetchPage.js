@@ -66,9 +66,9 @@ async function checkSearchSelectors( page, { searchSelectors } ) {
 }
 
 
-async function getPageLanguage( page, url, {interestLanguage} ) {
-    if(getDomain( url ) === searchEngineDomain)
-        return head(interestLanguage);
+async function getPageLanguage( page, url, { interestLanguage } ) {
+    if ( getDomain( url ) === searchEngineDomain )
+        return head( interestLanguage );
 
     return await page.evaluate( () => {
         return document.documentElement.lang;
@@ -130,7 +130,7 @@ async function __tryToFetchPage( url, errorCount = 0 ) {
         this.logError( `error on fetch (${errorCount + 1}) - ${err.message}` );
         await this.mongoManager.createOrUpdatePage( {
             url, error: true, fetched: false, fetching: false, errorMessage: err.toString()
-        } );
+        }, { addOneToDomain: true } );
     }
     return fetchedPages || [];
 }
@@ -147,7 +147,7 @@ async function fetchPage( url ) {
             this.page.waitForNavigation( {
                 waitUntil: ['load', 'domcontentloaded'],
                 timeout: this.config.waitForPageLoadTimeout
-            } ), // , 'domcontentloaded'
+            } ),
             this.page.goto( url ),
         ] );
     } catch ( err ) {
@@ -160,11 +160,13 @@ async function fetchPage( url ) {
         throw err;
     }
 
-    // wait for body appear (5sec max), and min 1 sec
-    await Promise.all( [
-        this.page.waitForSelector( 'body', { timeout: 5000 } ),
-        wait( 1000 ),
-    ] );
+    if ( this.config.waitForBodyAppear ) {
+        // wait for body appear (5sec max), and min 1 sec
+        await Promise.all( [
+            this.page.waitForSelector( 'body', { timeout: this.config.timeoutForBodyAppear } ),
+            wait( 500 ),
+        ] );
+    }
     this.logTimeEnd( 'time to navigate' );
 
     // fetch DOM data

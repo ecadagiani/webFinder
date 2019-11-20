@@ -46,6 +46,8 @@ There is the default config
     "maxUrlLength": 800,
     "timeBetweenTwoFetch": 1000,
     "crawlInvisibleLink": false,
+    "waitForBodyAppear": true,
+    "timeoutForBodyAppear": 5000,
     "domainScoreFunction": "(domain, nbFetch) => nbFetch < 50 ? 0 : Math.floor( (nbFetch-50) * -5 )",
     "interestMinimumScoreToContinue": 0,
     "interestMinimumScoreToFetchDb": 0,
@@ -269,6 +271,7 @@ the container has not been down before
 - add more complexe exemple
 - correct english of readme
 - tag first stable version
+- re-fetch timeout page, after few days
 
 ## Authors
 - **Eden Cadagiani** ([HelloMyBot](https://hellomybot.io/fr/bienvenue/))
