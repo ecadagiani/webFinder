@@ -42,6 +42,8 @@ There is the default config
         "headless": true
     },
 
+    "stopMaxTimeout": 20000,
+    "loopMaxTimeout": 60000,
     "waitForPageLoadTimeout": 30000,
     "maxUrlLength": 800,
     "timeBetweenTwoFetch": 1000,
@@ -140,7 +142,7 @@ There is the default config
     ],
     "maxCombinationSearchTags": 0,
     "offsetMaxSearchEngine": 100,
-    "searchEngineLanguage": "fr-fr"
+    "searchEngineLanguage": "uk-en"
 }
 ```
 

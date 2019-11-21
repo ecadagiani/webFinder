@@ -21,6 +21,8 @@
         "ignoreHTTPSErrors": true,
         "headless": true
     },
+    "stopMaxTimeout": 20000,
+    "loopMaxTimeout": 60000,
     "waitForPageLoadTimeout": 30000,
     "maxUrlLength": 800,
     "timeBetweenTwoFetch": 1000,
@@ -102,5 +104,5 @@
     ],
     "maxCombinationSearchTags": 2,
     "offsetMaxSearchEngine": 100,
-    "searchEngineLanguage": "wt-wt"
+    "searchEngineLanguage": "uk-en"
 }

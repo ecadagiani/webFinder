@@ -1,6 +1,6 @@
 const puppeteer = require( 'puppeteer' );
 const { get } = require( 'lodash' );
-const { wait, performance } = require( '@ecadagiani/jstools' );
+const { wait, performance, functionDelaying } = require( '@ecadagiani/jstools' );
 
 const defaultConfig = require( '../constants/defaultConfig' );
 
@@ -12,6 +12,7 @@ const { initConfig } = require( '../lib/initConfig' );
 const { error, logError, logDebug, log, logTime, logTimeEnd } = require( './CrawlerLog' );
 const { __tryToFetchPage, _fetchPageData, fetchPage } = require( './CrawlerFetchPage' );
 const { __getRandomSearchEngineLink, __tryToGetNewLink, __getNewLink } = require( './CrawlerGetNewLink' );
+
 
 class Crawler {
     constructor( config ) {
@@ -42,12 +43,6 @@ class Crawler {
 
     get status() {
         return this.__status;
-    }
-
-
-    __setStatus( status ) {
-        this.__status = status;
-        this.log( status );
     }
 
 
@@ -90,23 +85,76 @@ class Crawler {
         this.browser = null;
     }
 
+    async stop() {
+        this.__setStatus( Crawler.statusType.stopping );
+        try {
+            // eslint-disable-next-line no-async-promise-executor
+            await new Promise( async resolve => {
+                while ( this.__status !== Crawler.statusType.stopped ) {
+                    await wait( 50 );
+                }
+                resolve();
+            } ).timeout( this.config.stopMaxTimeout );
+        } catch {
+            await this.__stopNext();
+        }
+        return true;
+    }
 
-    async __runningReinit() {
-        this.logDebug( 'reinit' );
-        await this.initBrowser();
-        if ( this.page && !this.page.isClosed() )
-            await this.page.close();
-        this.page = await this.browser.newPage();
-        this.__runPlugins( 'onReinit' );
+    async start() {
+        if ( get( this.config, 'start' ) ) {
+            this.__setStatus( Crawler.statusType.running );
+            await this.__runPlugins( 'onStart' );
+            const startUrl = Array.isArray( this.config.start ) ? this.config.start[this.id - 1] : this.config.start;
+            this.__loop( startUrl );
+        } else
+            this.error( 'no start link in config - you can add "start": "mylink.com" to config file' );
+    }
+
+    async reStart() {
+        this.log("WARNING RE-START -----------------------------------------")
+        await this.stop();
+        await this.start();
     }
 
 
-    async stop() {
-        this.__setStatus( Crawler.statusType.stopping );
-        while ( this.__status !== Crawler.statusType.stopped ) {
-            await wait( 50 );
+    /********* PRIVATE FUNCTION *********/
+
+    async __loop( url ) {
+        // check stop
+        if ( this.__doIhaveToStop() ) return;
+
+        // check that loop continues
+        this.__loopSecurity();
+
+        const loopStart = performance.now();
+        this.logTime( 'time to complete loop' );
+
+        if ( !url ) {
+            this.logError( 'The crawler failed to find a valid url' );
+            throw this.error( 'The crawler failed to find a valid url' );
         }
-        return true;
+
+        // fetch page
+        this.logTime( 'time to complete fetchPage' );
+        const fetchedPages = await this.__tryToFetchPage( url );
+        this.logTimeEnd( 'time to complete fetchPage' );
+
+        // get new link
+        this.logTime( 'time to complete getNewLink' );
+        const newUrl = await this.__tryToGetNewLink( fetchedPages );
+        await this.__runPlugins( 'onNewLink', newUrl );
+        this.logTimeEnd( 'time to complete getNewLink' );
+
+        // minimum wait
+        this.logTimeEnd( 'time to complete loop' );
+        const timeToFetch = performance.now() - loopStart;
+        if ( timeToFetch < this.config.timeBetweenTwoFetch )
+            await wait( this.config.timeBetweenTwoFetch - timeToFetch );
+
+        // continue
+        if ( this.config.loop )
+            this.__loop( newUrl );
     }
 
 
@@ -124,56 +172,40 @@ class Crawler {
         this.__isStopNextStarted = false;
     }
 
-
     __doIhaveToStop() {
-        if ( this.__status !== Crawler.statusType.stopping )
-            return false;
+        if ( this.__status === Crawler.statusType.stopping ) {
+            this.__stopNext();
+            return true;
+        }
+        if ( this.__status === Crawler.statusType.stopped )
+            return true;
 
-        this.__stopNext();
-        return true;
+        return false;
     }
 
-
-    async start() {
-        if ( get( this.config, 'start' ) ) {
-            this.__setStatus( Crawler.statusType.running );
-            await this.__runPlugins( 'onStart' );
-            const startUrl = Array.isArray( this.config.start ) ? this.config.start[this.id - 1] : this.config.start;
-            this.__loop( startUrl );
-        } else
-            this.error( 'no start link in config - you can add "start": "mylink.com" to config file' );
+    async __runningReinit() {
+        this.logDebug( 'reinit' );
+        await this.initBrowser();
+        if ( this.page && !this.page.isClosed() )
+            await this.page.close();
+        this.page = await this.browser.newPage();
+        this.__runPlugins( 'onReinit' );
     }
 
-
-    async __loop( url ) {
-        if ( this.__doIhaveToStop() ) return;
-
-        const loopStart = performance.now();
-        this.logTime( 'time to complete loop' );
-
-        if ( !url )
-            throw this.error( 'The crawler failed to find a valid url' );
-
-        this.logTime( 'time to complete fetchPage' );
-        const fetchedPages = await this.__tryToFetchPage( url );
-        this.logTimeEnd( 'time to complete fetchPage' );
-
-        if ( this.__doIhaveToStop() ) return;
-
-        this.logTime( 'time to complete getNewLink' );
-        const newUrl = await this.__tryToGetNewLink( fetchedPages );
-        await this.__runPlugins( 'onNewLink', newUrl );
-        this.logTimeEnd( 'time to complete getNewLink' );
-
-        this.logTimeEnd( 'time to complete loop' );
-        const timeToFetch = performance.now() - loopStart;
-        if ( timeToFetch < this.config.timeBetweenTwoFetch )
-            await wait( this.config.timeBetweenTwoFetch - timeToFetch );
-
-        if ( this.config.loop )
-            this.__loop( newUrl );
+    /**
+     * check that the loop continues. If not restart the loop
+     */
+    __loopSecurity() {
+        functionDelaying( () => {
+            if ( ![Crawler.statusType.stopping, Crawler.statusType.stopped].includes( this.__status ) )
+                this.reStart();
+        }, this.config.loopMaxTimeout, `crawler${this.id}Loop` );
     }
 
+    __setStatus( status ) {
+        this.__status = status;
+        this.log( status );
+    }
 
     async __runPlugins( pluginMethod, ...params ) {
         return Promise.map( this.__plugins, async plugin => {
