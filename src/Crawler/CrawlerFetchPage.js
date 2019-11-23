@@ -118,12 +118,18 @@ async function __tryToFetchPage( url, errorCount = 0 ) {
 
         if ( err.code === 6001 ) { // Domain recovery failed
             this.logError( `error on fetch - ${err.message}` );
-            return null;
+            return [];
         }
+
+        if ( Object.values( basicNavigationErrorCode ).some( errorCode => err.message.includes( errorCode ) ) ) {
+            await this.mongoManager.createOrUpdatePage( { url, fetched: true, fetching: false } );
+            return [];
+        }
+
         if ( errorCount < 2 ) {
             this.logError( `error on fetch (${errorCount + 1}) - ${err.message}` );
             this.log( 'will try again' );
-            await this.__runningReinit();
+            if ( err.message.includes( 'Session closed' ) ) await this.initPage();
             return await this.__tryToFetchPage( url, errorCount + 1 );
         }
 
@@ -141,24 +147,14 @@ async function fetchPage( url ) {
     await this.__runPlugins( 'onFetchPage', url );
 
     this.logTime( 'time to navigate' );
-    try {
-        await Promise.all( [
-            this.mongoManager.createOrUpdatePage( { url, fetching: true }, { saveDomain: true } ),
-            this.page.waitForNavigation( {
-                waitUntil: ['load', 'domcontentloaded'],
-                timeout: this.config.waitForPageLoadTimeout
-            } ),
-            this.page.goto( url ),
-        ] );
-    } catch ( err ) {
-        if (
-            Object.values( basicNavigationErrorCode ).some( errorCode => err.message.includes( errorCode ) )
-        ) {
-            await this.mongoManager.createOrUpdatePage( { url, fetched: true, fetching: false } );
-            return null;
-        }
-        throw err;
-    }
+    await Promise.all( [
+        this.mongoManager.createOrUpdatePage( { url, fetching: true }, { saveDomain: true } ),
+        this.page.waitForNavigation( {
+            waitUntil: ['load', 'domcontentloaded'],
+            timeout: this.config.waitForPageLoadTimeout
+        } ),
+        this.page.goto( url ),
+    ] );
 
     if ( this.config.waitForBodyAppear ) {
         // wait for body appear (5sec max), and min 1 sec

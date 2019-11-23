@@ -21,7 +21,7 @@
         "ignoreHTTPSErrors": true,
         "headless": true
     },
-    "stopMaxTimeout": 20000,
+    "stopMaxTimeout": 60000,
     "loopMaxTimeout": 60000,
     "waitForPageLoadTimeout": 30000,
     "maxUrlLength": 800,

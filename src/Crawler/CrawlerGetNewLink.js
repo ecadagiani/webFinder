@@ -7,13 +7,14 @@ async function __tryToGetNewLink( previousFetchedPage, errorCount = 0 ) {
     try {
         url = await this.__getNewLink( previousFetchedPage );
     } catch ( err ) {
-        if ( this.__doIhaveToStop() ) return;
-        if ( this.config.throwError )
-            throw err;
+        if ( this.config.throwError ) throw err;
+
         if ( errorCount < 2 ) {
-            await this.__runningReinit();
+            this.logError( `error on get next link (${errorCount + 1}) - ${err.message}` );
+            this.log( 'will try again' );
             return await this.__tryToGetNewLink( previousFetchedPage, errorCount + 1 );
         }
+
         throw this.error( 'error on get next link - ', err.message );
     }
 

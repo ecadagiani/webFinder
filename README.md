@@ -164,7 +164,6 @@ class PluginTest extends WebFinderPlugin {
         this.onInit = this.onInit.bind(this);
         this.onStart = this.onStart.bind(this);
         this.onStop = this.onStop.bind(this);
-        this.onReinit = this.onReinit.bind(this);
         this.onFetchPage = this.onFetchPage.bind(this);
         this.match = this.match.bind(this);
         this.onPageIsFetched = this.onPageIsFetched.bind(this);
@@ -188,12 +187,6 @@ class PluginTest extends WebFinderPlugin {
      * When stop is send to the crawler
      */
     onStop() {}
-
-    /**
-     * When crawler reinit
-     */
-    onReinit() {
-    }
     
     /**
      * Before a page was fetched
@@ -274,6 +267,7 @@ the container has not been down before
 - correct english of readme
 - tag first stable version
 - re-fetch timeout page, after few days
+- optimise mongo get new link
 
 ## Authors
 - **Eden Cadagiani** ([HelloMyBot](https://hellomybot.io/fr/bienvenue/))

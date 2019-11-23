@@ -4,20 +4,20 @@ const Schema = mongoose.Schema;
 
 const PageSchema = new Schema({
     url: {type: String, unique: true, required: true, dropDups: true},
-    domain: {type: String, ref: 'Domain'},
-    fetched: { type: Boolean, default: false },
-    fetching: { type: Boolean, default: false },
+    domain: {type: String, ref: 'Domain', index: true},
+    fetched: { type: Boolean, default: false, index: true },
+    fetching: { type: Boolean, default: false, index: true },
     fetchDate: Date,
-    fetchInterest: { type: Number, default: 0 },
+    fetchInterest: { type: Number, default: 0, index: true },
 
     match: { type: Boolean, default: false },
     matchTags: [{ type: String }],
     language: { type: String, default: null },
 
-    error: { type: Boolean, default: false },
+    error: { type: Boolean, default: false, index: true },
     errorMessage: String,
 }, {
-    autoIndex: true,
+    autoIndex: false,
     strict: true,
     minimize: true,
     versionKey: false,

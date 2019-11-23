@@ -49,13 +49,11 @@ class Crawler {
     async init() {
         this.__setStatus( Crawler.statusType.initialising );
         await this.initBrowser();
+        await this.initPage();
 
-        if ( this.page && !this.page.isClosed() )
-            await this.page.close();
         if ( this.mongoManager )
             this.mongoManager.close();
 
-        this.page = await this.browser.newPage();
         this.mongoManager = new MongoManager( this.config, this.id );
         await this.mongoManager.init();
         this.__setStatus( Crawler.statusType.initialised );
@@ -76,6 +74,12 @@ class Crawler {
             await this.closeBrowser();
             this.browser = await puppeteer.launch( browserOptions );
         }
+    }
+
+    async initPage() {
+        if ( this.page && !this.page.isClosed() )
+            await this.page.close();
+        this.page = await this.browser.newPage();
     }
 
 
@@ -112,21 +116,48 @@ class Crawler {
     }
 
     async reStart() {
-        this.log("WARNING RE-START -----------------------------------------")
+        this.log( 'WARNING RE-START -----------------------------------------' );
         await this.stop();
         await this.start();
     }
 
 
-    /********* PRIVATE FUNCTION *********/
+    /** ******* PRIVATE FUNCTION *********/
 
     async __loop( url ) {
-        // check stop
-        if ( this.__doIhaveToStop() ) return;
+        let _url = url;
+        try {
+            let isFirstLoop = false;
+            while (
+                (this.config.loop || !isFirstLoop)
+                && (this.status !== Crawler.statusType.stopping
+                    || this.status !== Crawler.statusType.stopped)
+            ) {
+                isFirstLoop = true;
+                // SECURITY check url
+                if ( !_url ) throw this.error( 'url is not valid', _url );
 
-        // check that loop continues
-        this.__loopSecurity();
+                // SECURITY check if __crawlPage not take to much time
+                functionDelaying( () => {
+                    if ( ![Crawler.statusType.stopping, Crawler.statusType.stopped].includes( this.__status ) )
+                        this.reStart();
+                }, this.config.loopMaxTimeout, `crawler${this.id}Loop` );
 
+                // CRAWL PAGE
+                _url = await this.__crawlPage( _url );
+            }
+            this.__stopNext();
+
+        } catch ( err ) {
+            if ( this.config.throwError ) throw err;
+
+            this.logError( 'An error was occured in loop', err );
+            await this.reStart();
+        }
+    }
+
+
+    async __crawlPage( url ) {
         const loopStart = performance.now();
         this.logTime( 'time to complete loop' );
 
@@ -152,9 +183,7 @@ class Crawler {
         if ( timeToFetch < this.config.timeBetweenTwoFetch )
             await wait( this.config.timeBetweenTwoFetch - timeToFetch );
 
-        // continue
-        if ( this.config.loop )
-            this.__loop( newUrl );
+        return newUrl;
     }
 
 
@@ -172,40 +201,12 @@ class Crawler {
         this.__isStopNextStarted = false;
     }
 
-    __doIhaveToStop() {
-        if ( this.__status === Crawler.statusType.stopping ) {
-            this.__stopNext();
-            return true;
-        }
-        if ( this.__status === Crawler.statusType.stopped )
-            return true;
-
-        return false;
-    }
-
-    async __runningReinit() {
-        this.logDebug( 'reinit' );
-        await this.initBrowser();
-        if ( this.page && !this.page.isClosed() )
-            await this.page.close();
-        this.page = await this.browser.newPage();
-        this.__runPlugins( 'onReinit' );
-    }
-
-    /**
-     * check that the loop continues. If not restart the loop
-     */
-    __loopSecurity() {
-        functionDelaying( () => {
-            if ( ![Crawler.statusType.stopping, Crawler.statusType.stopped].includes( this.__status ) )
-                this.reStart();
-        }, this.config.loopMaxTimeout, `crawler${this.id}Loop` );
-    }
 
     __setStatus( status ) {
         this.__status = status;
         this.log( status );
     }
+
 
     async __runPlugins( pluginMethod, ...params ) {
         return Promise.map( this.__plugins, async plugin => {
