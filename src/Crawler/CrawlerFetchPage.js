@@ -110,6 +110,7 @@ async function _fetchPageData( url ) {
 
 async function __tryToFetchPage( url, errorCount = 0 ) {
     if ( this.status === crawlerStatusType.stopping ) {
+        await this.mongoManager.createOrUpdatePage( { url, fetched: false, fetching: false } );
         await this.__stopNext();
         return;
     }
@@ -117,7 +118,6 @@ async function __tryToFetchPage( url, errorCount = 0 ) {
         return;
     }
 
-    this.log( `fetch - ${url}` );
     let fetchedPages = [];
     try {
         fetchedPages = await this.fetchPage( url );

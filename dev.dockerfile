@@ -35,9 +35,6 @@ RUN groupadd -r pptruser && useradd -r -g pptruser -G audio,video pptruser \
 USER pptruser
 
 
-
-ENV PORT 3000
-
 CMD xvfb-run --server-args="-screen 0 1024x768x24" npm run startdev
 # ENTRYPOINT ["dumb-init", "--"]
 # CMD ["npm", "run", "startdev"]

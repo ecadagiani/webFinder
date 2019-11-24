@@ -1,5 +1,6 @@
 const puppeteer = require( 'puppeteer' );
 const { get } = require( 'lodash' );
+const axios = require( 'axios' );
 const { wait, performance } = require( '@ecadagiani/jstools' );
 
 const defaultConfig = require( '../constants/defaultConfig' );
@@ -16,13 +17,14 @@ const { __getRandomSearchEngineLink, __tryToGetNewLink, __getNewLink } = require
 
 
 class Crawler {
-    constructor( config ) {
-        this.id = Crawler.crawlerList.push( this );
+    constructor( config, id ) {
+        this.id = id;
         this.config = initConfig( config, defaultConfig );
         this.browser = null;
         this.page = null;
         this.mongoManager = null;
         this.__status = Crawler.statusType.initial;
+        this.__url = '';
         this.__plugins = [];
 
         this.error = error.bind( this );
@@ -110,17 +112,13 @@ class Crawler {
 
     async stop() {
         this.__setStatus( Crawler.statusType.stopping );
-        try {
-            // eslint-disable-next-line no-async-promise-executor
-            await new Promise( async resolve => {
-                while ( this.__status !== Crawler.statusType.stopped ) {
-                    await wait( 50 );
-                }
-                resolve();
-            } ).timeout( this.config.loopMaxTimeout );
-        } catch {
-            await this.__stopNext();
-        }
+        // eslint-disable-next-line no-async-promise-executor
+        await new Promise( async resolve => {
+            while ( this.__status !== Crawler.statusType.stopped ) {
+                await wait( 50 );
+            }
+            resolve();
+        } );
         return true;
     }
 
@@ -133,21 +131,7 @@ class Crawler {
         } else
             this.error( 'no start link in config - you can add "start": "mylink.com" to config file' );
     }
-
-    async reStart() {
-        this.log( 'RE-START -----------------------------------------' );
-        try {
-            await this.stop();
-            await this.init();
-            await this.start();
-        } catch ( err ) {
-            if ( this.config.throwError === true ) throw err;
-
-            this.logError( 'An error occured in reStart: ', err );
-            this.reStart();
-        }
-    }
-
+    
 
     /** ******* PRIVATE FUNCTION *********/
 
@@ -170,47 +154,41 @@ class Crawler {
             this.__stopNext();
 
         } catch ( err ) {
-            if ( this.config.throwError ) throw err;
-
-            if ( err.message === 'operation timed out' )
-                this.logError( `An error was occured in loop: crawlPage take too long (more than ${this.config.loopMaxTimeout}ms)` );
-            else
-                this.logError( 'An error was occured in loop: ', err );
-            await this.reStart();
+            this.logError( 'An error was occured in loop: ', err );
+            throw err;
         }
     }
 
 
     async __crawlPage( url ) {
         // eslint-disable-next-line no-async-promise-executor
-        return new Promise( async resolve => {
-            const loopStart = performance.now();
-            this.logTime( 'time to complete loop' );
+        this.__setUrl( url );
+        const loopStart = performance.now();
+        this.logTime( 'time to complete loop' );
 
-            if ( !url ) {
-                this.logError( 'The crawler failed to find a valid url' );
-                throw this.error( 'The crawler failed to find a valid url' );
-            }
+        if ( !url ) {
+            this.logError( 'The crawler failed to find a valid url' );
+            throw this.error( 'The crawler failed to find a valid url' );
+        }
 
-            // fetch page
-            this.logTime( 'time to complete fetchPage' );
-            const fetchedPages = await this.__tryToFetchPage( url );
-            this.logTimeEnd( 'time to complete fetchPage' );
+        // fetch page
+        this.logTime( 'time to complete fetchPage' );
+        const fetchedPages = await this.__tryToFetchPage( url );
+        this.logTimeEnd( 'time to complete fetchPage' );
 
-            // get new link
-            this.logTime( 'time to complete getNewLink' );
-            const newUrl = await this.__tryToGetNewLink( fetchedPages );
-            await this.__runPlugins( 'onNewLink', newUrl );
-            this.logTimeEnd( 'time to complete getNewLink' );
+        // get new link
+        this.logTime( 'time to complete getNewLink' );
+        const newUrl = await this.__tryToGetNewLink( fetchedPages );
+        await this.__runPlugins( 'onNewLink', newUrl );
+        this.logTimeEnd( 'time to complete getNewLink' );
 
-            // minimum wait
-            this.logTimeEnd( 'time to complete loop' );
-            const timeToFetch = performance.now() - loopStart;
-            if ( timeToFetch < this.config.timeBetweenTwoFetch )
-                await wait( this.config.timeBetweenTwoFetch - timeToFetch );
+        // minimum wait
+        this.logTimeEnd( 'time to complete loop' );
+        const timeToFetch = performance.now() - loopStart;
+        if ( timeToFetch < this.config.timeBetweenTwoFetch )
+            await wait( this.config.timeBetweenTwoFetch - timeToFetch );
 
-            resolve( newUrl );
-        } ).timeout( this.config.loopMaxTimeout );
+        return newUrl;
     }
 
 
@@ -225,6 +203,13 @@ class Crawler {
     __setStatus( status ) {
         this.__status = status;
         this.log( status );
+        this.__informManager();
+    }
+
+    __setUrl( url ) {
+        this.__url = url;
+        this.log( url );
+        this.__informManager();
     }
 
 
@@ -243,10 +228,15 @@ class Crawler {
             return undefined;
         } );
     }
+
+    async __informManager() {
+        await axios.post( `http://localhost:${this.config.managerServerPort}/crawlerUpdate`, {
+            id: this.id,
+            status: this.status,
+            url: this.__url,
+        } );
+    }
 }
-
-
-Crawler.crawlerList = [];
 
 Crawler.statusType = crawlerStatusType;
 

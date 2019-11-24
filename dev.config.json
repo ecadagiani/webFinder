@@ -2,7 +2,7 @@
     "debug": false,
     "throwError": false,
     "loop": true,
-    "nbCrawler": 4,
+    "nbCrawler": 2,
     "start": "https://fr.reactjs.org/",
     "searchSelectors": [
         {
@@ -28,6 +28,5 @@
         ],
         "devTools": true
     },
-    "interestLanguage": ["en", "en-gb", "en-uk", "en-us", "uk-en"],
-    "loopMaxTimeout": 40000
+    "interestLanguage": ["en", "en-gb", "en-uk", "en-us", "uk-en"]
 }

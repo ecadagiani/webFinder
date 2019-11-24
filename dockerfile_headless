@@ -33,7 +33,5 @@ RUN groupadd -r pptruser && useradd -r -g pptruser -G audio,video pptruser \
 # Run user as non privileged.
 USER pptruser
 
-ENV PORT 3000
-
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["npm", "run", "start"]

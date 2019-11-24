@@ -3,7 +3,6 @@
     "showPluginTimeoutError": true,
     "throwError": false,
     "loop": true,
-    "nbCrawler": 1,
     "start": "",
     "searchSelectors": [],
     "mongo": {
@@ -21,7 +20,6 @@
         "ignoreHTTPSErrors": true,
         "headless": true
     },
-    "loopMaxTimeout": 120000,
     "waitForPageLoadTimeout": 30000,
     "maxErrorFetchPage": 3,
     "maxErrorGetNewLink": 3,
@@ -105,5 +103,10 @@
     ],
     "maxCombinationSearchTags": 2,
     "offsetMaxSearchEngine": 100,
-    "searchEngineLanguage": "uk-en"
+    "searchEngineLanguage": "uk-en",
+
+
+    "loopMaxTimeout": 120000,
+    "managerServerPort": 3000,
+    "nbCrawler": 1
 }

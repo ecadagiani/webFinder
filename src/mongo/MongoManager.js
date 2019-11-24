@@ -55,7 +55,7 @@ class MongoManager {
     async close() {
         try {
             await this.__connection.close();
-            await wait(100);
+            await wait( 100 );
             this.log( 'Connection closed' );
         } catch ( err ) {
             this.log( 'An error occured in close:', err );
@@ -281,7 +281,7 @@ class MongoManager {
 
     log( ...texts ) {
         const date = new Date();
-        console.log( `[${date.toISOString()}] MongoManager ${this.id}: `, ...texts );
+        console.log( `[${date.toISOString()}] Crawler ${this.id} - Mongo: `, ...texts );
     }
 
     debugLog( ...texts ) {
