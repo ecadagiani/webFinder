@@ -52,7 +52,7 @@ class Crawler {
         await this.initPage();
 
         if ( this.mongoManager )
-            this.mongoManager.close();
+            await this.mongoManager.close();
 
         this.mongoManager = new MongoManager( this.config, this.id );
         await this.mongoManager.init();
@@ -67,27 +67,37 @@ class Crawler {
             args: [`--lang=${this.config.browserLanguage}`],
             ...this.config.browserOptions
         };
-
-        if ( !this.browser )
-            this.browser = await puppeteer.launch( browserOptions );
-        else if ( !this.browser.isConnected() ) {
-            await this.closeBrowser();
-            this.browser = await puppeteer.launch( browserOptions );
-        }
+        this.browser = await puppeteer.launch( browserOptions );
     }
 
     async initPage() {
-        if ( this.page && !this.page.isClosed() )
-            await this.page.close();
         this.page = await this.browser.newPage();
     }
 
-
     async closeBrowser() {
-        if ( this.browser )
-            await this.browser.close();
+        await this.closePage();
+
+        try {
+            if ( this.browser && this.browser.isConnected() )
+                await this.browser.close();
+        } catch ( err ) {
+            this.logError( 'an error occured in closeBrowser', err.message );
+        }
+        delete this.browser;
         this.browser = null;
     }
+
+    async closePage() {
+        try {
+            if ( this.page && !this.page.isClosed() )
+                await this.page.close();
+        } catch ( err ) {
+            this.logError( 'an error occured in closePage', err.message );
+        }
+        delete this.page;
+        this.page = null;
+    }
+
 
     async stop() {
         this.__setStatus( Crawler.statusType.stopping );
@@ -98,7 +108,7 @@ class Crawler {
                     await wait( 50 );
                 }
                 resolve();
-            } ).timeout( this.config.stopMaxTimeout );
+            } ).timeout( this.config.loopMaxTimeout );
         } catch {
             await this.__stopNext();
         }
@@ -116,9 +126,17 @@ class Crawler {
     }
 
     async reStart() {
-        this.log( 'WARNING RE-START -----------------------------------------' );
-        await this.stop();
-        await this.start();
+        this.log( 'RE-START -----------------------------------------' );
+        try {
+            await this.stop();
+            await this.init();
+            await this.start();
+        } catch ( err ) {
+            if ( this.config.throwError === true ) throw err;
+
+            this.logError( 'An error occured in reStart: ', err );
+            this.reStart();
+        }
     }
 
 
@@ -137,12 +155,6 @@ class Crawler {
                 // SECURITY check url
                 if ( !_url ) throw this.error( 'url is not valid', _url );
 
-                // SECURITY check if __crawlPage not take to much time
-                functionDelaying( () => {
-                    if ( ![Crawler.statusType.stopping, Crawler.statusType.stopped].includes( this.__status ) )
-                        this.reStart();
-                }, this.config.loopMaxTimeout, `crawler${this.id}Loop` );
-
                 // CRAWL PAGE
                 _url = await this.__crawlPage( _url );
             }
@@ -151,54 +163,52 @@ class Crawler {
         } catch ( err ) {
             if ( this.config.throwError ) throw err;
 
-            this.logError( 'An error was occured in loop', err );
+            this.logError( 'An error was occured in loop: ', err );
             await this.reStart();
         }
     }
 
 
     async __crawlPage( url ) {
-        const loopStart = performance.now();
-        this.logTime( 'time to complete loop' );
+        // eslint-disable-next-line no-async-promise-executor
+        return new Promise( async resolve => {
+            const loopStart = performance.now();
+            this.logTime( 'time to complete loop' );
 
-        if ( !url ) {
-            this.logError( 'The crawler failed to find a valid url' );
-            throw this.error( 'The crawler failed to find a valid url' );
-        }
+            if ( !url ) {
+                this.logError( 'The crawler failed to find a valid url' );
+                throw this.error( 'The crawler failed to find a valid url' );
+            }
 
-        // fetch page
-        this.logTime( 'time to complete fetchPage' );
-        const fetchedPages = await this.__tryToFetchPage( url );
-        this.logTimeEnd( 'time to complete fetchPage' );
+            // fetch page
+            this.logTime( 'time to complete fetchPage' );
+            const fetchedPages = await this.__tryToFetchPage( url );
+            this.logTimeEnd( 'time to complete fetchPage' );
 
-        // get new link
-        this.logTime( 'time to complete getNewLink' );
-        const newUrl = await this.__tryToGetNewLink( fetchedPages );
-        await this.__runPlugins( 'onNewLink', newUrl );
-        this.logTimeEnd( 'time to complete getNewLink' );
+            // get new link
+            this.logTime( 'time to complete getNewLink' );
+            const newUrl = await this.__tryToGetNewLink( fetchedPages );
+            await this.__runPlugins( 'onNewLink', newUrl );
+            this.logTimeEnd( 'time to complete getNewLink' );
 
-        // minimum wait
-        this.logTimeEnd( 'time to complete loop' );
-        const timeToFetch = performance.now() - loopStart;
-        if ( timeToFetch < this.config.timeBetweenTwoFetch )
-            await wait( this.config.timeBetweenTwoFetch - timeToFetch );
+            // minimum wait
+            this.logTimeEnd( 'time to complete loop' );
+            const timeToFetch = performance.now() - loopStart;
+            if ( timeToFetch < this.config.timeBetweenTwoFetch )
+                await wait( this.config.timeBetweenTwoFetch - timeToFetch );
 
-        return newUrl;
+            resolve( newUrl );
+        } ).timeout( this.config.loopMaxTimeout );
     }
 
 
     async __stopNext() {
-        if ( this.__isStopNextStarted ) return;
-        this.__isStopNextStarted = true;
         await this.__runPlugins( 'onStop' );
-        if ( this.page && !this.page.isClosed() )
-            await this.page.close();
-        this.page = null;
+        await this.closeBrowser();
         if ( this.mongoManager )
             this.mongoManager.close();
         this.mongoManager = null;
         this.__setStatus( Crawler.statusType.stopped );
-        this.__isStopNextStarted = false;
     }
 
 

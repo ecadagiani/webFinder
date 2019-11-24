@@ -129,14 +129,25 @@ async function __tryToFetchPage( url, errorCount = 0 ) {
         if ( errorCount < 2 ) {
             this.logError( `error on fetch (${errorCount + 1}) - ${err.message}` );
             this.log( 'will try again' );
-            if ( err.message.includes( 'Session closed' ) ) await this.initPage();
+
+            if ( err.message.includes( 'browser has disconnected' ) ) {
+                await this.initBrowser();
+                await this.initPage();
+            } else if ( err.message.includes( 'Execution context was destroyed' ) ) {
+                await this.initPage();
+            } else if ( err.message.includes( 'Session closed' ) ) {
+                await this.initPage();
+            } else if ( err.message.includes( 'Connection closed' ) ) {
+                await this.initPage();
+            }
+
             return await this.__tryToFetchPage( url, errorCount + 1 );
         }
 
         this.logError( `error on fetch (${errorCount + 1}) - ${err.message}` );
         await this.mongoManager.createOrUpdatePage( {
             url, error: true, fetched: false, fetching: false, errorMessage: err.toString()
-        }, { addOneToDomain: true } );
+        }, { addOneToDomain: true } ); // is mandatory to add one to domain, to avoid to crawl bugged domain indefinitely
     }
     return fetchedPages || [];
 }

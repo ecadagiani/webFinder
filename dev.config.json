@@ -1,5 +1,5 @@
 {
-    "debug": true,
+    "debug": false,
     "throwError": false,
     "loop": true,
     "nbCrawler": 4,
@@ -28,5 +28,6 @@
         ],
         "devTools": true
     },
-    "interestLanguage": ["en", "en-gb", "en-uk", "en-us", "uk-en"]
+    "interestLanguage": ["en", "en-gb", "en-uk", "en-us", "uk-en"],
+    "loopMaxTimeout": 40000
 }
