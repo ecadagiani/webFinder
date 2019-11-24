@@ -23,6 +23,8 @@
     },
     "loopMaxTimeout": 120000,
     "waitForPageLoadTimeout": 30000,
+    "maxErrorFetchPage": 3,
+    "maxErrorGetNewLink": 3,
     "maxUrlLength": 800,
     "timeBetweenTwoFetch": 1000,
     "crawlInvisibleLink": false,

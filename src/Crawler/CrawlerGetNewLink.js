@@ -1,17 +1,24 @@
 const { get, chain, template, uniq, find } = require( 'lodash' );
 const { getRndInteger, drawWithoutDuplicate } = require( '@ecadagiani/jstools' );
-const { searchEngineUrl } = require( '../constants/crawlerconstants' );
+const { searchEngineUrl, crawlerStatusType } = require( '../constants/crawlerconstants' );
 
 async function __tryToGetNewLink( previousFetchedPage, errorCount = 0 ) {
+    if ( this.status === crawlerStatusType.stopping ) {
+        await this.__stopNext();
+        return;
+    }
+    if ( this.status === crawlerStatusType.stopped ) {
+        return;
+    }
+
     let url = null;
     try {
         url = await this.__getNewLink( previousFetchedPage );
     } catch ( err ) {
         if ( this.config.throwError ) throw err;
 
-        if ( errorCount < 2 ) {
+        if ( errorCount < this.config.maxErrorGetNewLink - 1 ) {
             this.logError( `error on get next link (${errorCount + 1}) - ${err.message}` );
-            this.log( 'will try again' );
             return await this.__tryToGetNewLink( previousFetchedPage, errorCount + 1 );
         }
 
@@ -48,7 +55,7 @@ async function __getNewLink( previousFetchedPage = [] ) {
         return futurPage.url;
     } else if ( this.config.debug ) { // log debug
         this.logDebug( 'The best previous page, did not have a sufficient score, his score was: ',
-            get(mongoPreviousPage, '0.score')
+            get( mongoPreviousPage, '0.score' )
         );
     }
 

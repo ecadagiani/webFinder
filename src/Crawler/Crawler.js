@@ -1,8 +1,9 @@
 const puppeteer = require( 'puppeteer' );
 const { get } = require( 'lodash' );
-const { wait, performance, functionDelaying } = require( '@ecadagiani/jstools' );
+const { wait, performance } = require( '@ecadagiani/jstools' );
 
 const defaultConfig = require( '../constants/defaultConfig' );
+const { crawlerStatusType } = require( '../constants/crawlerconstants' );
 
 const MongoManager = require( '../mongo/MongoManager' );
 const { loadPlugins } = require( '../lib/loadPlugins' );
@@ -51,9 +52,6 @@ class Crawler {
         await this.initBrowser();
         await this.initPage();
 
-        if ( this.mongoManager )
-            await this.mongoManager.close();
-
         this.mongoManager = new MongoManager( this.config, this.id );
         await this.mongoManager.init();
         this.__setStatus( Crawler.statusType.initialised );
@@ -96,6 +94,17 @@ class Crawler {
         }
         delete this.page;
         this.page = null;
+    }
+
+    async closeMongoManager() {
+        try {
+            if ( this.mongoManager )
+                await this.mongoManager.close();
+        } catch ( err ) {
+            this.logError( 'an error occured in closePage', err.message );
+        }
+        delete this.mongoManager;
+        this.mongoManager = null;
     }
 
 
@@ -163,7 +172,10 @@ class Crawler {
         } catch ( err ) {
             if ( this.config.throwError ) throw err;
 
-            this.logError( 'An error was occured in loop: ', err );
+            if ( err.message === 'operation timed out' )
+                this.logError( `An error was occured in loop: crawlPage take too long (more than ${this.config.loopMaxTimeout}ms)` );
+            else
+                this.logError( 'An error was occured in loop: ', err );
             await this.reStart();
         }
     }
@@ -205,9 +217,7 @@ class Crawler {
     async __stopNext() {
         await this.__runPlugins( 'onStop' );
         await this.closeBrowser();
-        if ( this.mongoManager )
-            this.mongoManager.close();
-        this.mongoManager = null;
+        await this.closeMongoManager();
         this.__setStatus( Crawler.statusType.stopped );
     }
 
@@ -238,13 +248,6 @@ class Crawler {
 
 Crawler.crawlerList = [];
 
-Crawler.statusType = {
-    initial: 'initial',
-    initialising: 'initialising',
-    initialised: 'initialised',
-    running: 'running',
-    stopping: 'stopping',
-    stopped: 'stopped',
-};
+Crawler.statusType = crawlerStatusType;
 
 module.exports = Crawler;

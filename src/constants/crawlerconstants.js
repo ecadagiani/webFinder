@@ -8,8 +8,17 @@ const basicNavigationErrorCode = {
     ECONNREFUSED: 'ECONNREFUSED',
 };
 
+const crawlerStatusType = {
+    initial: 'initial',
+    initialising: 'initialising',
+    initialised: 'initialised',
+    running: 'running',
+    stopping: 'stopping',
+    stopped: 'stopped',
+};
+
 const searchEngineDomain = 'duckduckgo.com';
 const searchEngineUrl = "https://duckduckgo.com/lite?q=${query}&s=${offset}&dc=${offset}&kl=${language}";
 
 
-module.exports = { basicNavigationErrorCode, searchEngineDomain, searchEngineUrl };
+module.exports = { basicNavigationErrorCode, searchEngineDomain, searchEngineUrl, crawlerStatusType };

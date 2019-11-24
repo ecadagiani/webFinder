@@ -1,7 +1,7 @@
 const { chain, get, uniq, head } = require( 'lodash' );
 const { wait, getUrlParts } = require( '@ecadagiani/jstools' );
 
-const { basicNavigationErrorCode, searchEngineDomain } = require( '../constants/crawlerconstants' );
+const { basicNavigationErrorCode, searchEngineDomain, crawlerStatusType } = require( '../constants/crawlerconstants' );
 const { calculInterestScore } = require( './calculInterest' );
 const { getDomain } = require( '../lib/tools' );
 
@@ -109,6 +109,14 @@ async function _fetchPageData( url ) {
 }
 
 async function __tryToFetchPage( url, errorCount = 0 ) {
+    if ( this.status === crawlerStatusType.stopping ) {
+        await this.__stopNext();
+        return;
+    }
+    if ( this.status === crawlerStatusType.stopped ) {
+        return;
+    }
+
     this.log( `fetch - ${url}` );
     let fetchedPages = [];
     try {
@@ -126,9 +134,8 @@ async function __tryToFetchPage( url, errorCount = 0 ) {
             return [];
         }
 
-        if ( errorCount < 2 ) {
+        if ( errorCount < this.config.maxErrorFetchPage - 1 ) {
             this.logError( `error on fetch (${errorCount + 1}) - ${err.message}` );
-            this.log( 'will try again' );
 
             if ( err.message.includes( 'browser has disconnected' ) ) {
                 await this.initBrowser();
