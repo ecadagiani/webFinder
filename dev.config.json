@@ -1,8 +1,8 @@
 {
-    "debug": true,
+    "debug": false,
     "throwError": false,
     "loop": true,
-    "nbCrawler": 1,
+    "nbCrawler": 2,
     "start": "https://fr.reactjs.org/",
     "searchSelectors": [
         {
@@ -28,5 +28,5 @@
         ],
         "devTools": true
     },
-    "searchEngineLanguage": "fr-fr"
+    "interestLanguage": ["en", "en-gb", "en-uk", "en-us", "uk-en"]
 }

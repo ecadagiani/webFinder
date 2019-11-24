@@ -1,8 +1,10 @@
 const puppeteer = require( 'puppeteer' );
 const { get } = require( 'lodash' );
-const { wait, performance, functionDelaying } = require( '@ecadagiani/jstools' );
+const axios = require( 'axios' );
+const { wait, performance } = require( '@ecadagiani/jstools' );
 
 const defaultConfig = require( '../constants/defaultConfig' );
+const { crawlerStatusType } = require( '../constants/crawlerconstants' );
 
 const MongoManager = require( '../mongo/MongoManager' );
 const { loadPlugins } = require( '../lib/loadPlugins' );
@@ -15,13 +17,14 @@ const { __getRandomSearchEngineLink, __tryToGetNewLink, __getNewLink } = require
 
 
 class Crawler {
-    constructor( config ) {
-        this.id = Crawler.crawlerList.push( this );
+    constructor( config, id ) {
+        this.id = id;
         this.config = initConfig( config, defaultConfig );
         this.browser = null;
         this.page = null;
         this.mongoManager = null;
         this.__status = Crawler.statusType.initial;
+        this.__url = '';
         this.__plugins = [];
 
         this.error = error.bind( this );
@@ -49,13 +52,8 @@ class Crawler {
     async init() {
         this.__setStatus( Crawler.statusType.initialising );
         await this.initBrowser();
+        await this.initPage();
 
-        if ( this.page && !this.page.isClosed() )
-            await this.page.close();
-        if ( this.mongoManager )
-            this.mongoManager.close();
-
-        this.page = await this.browser.newPage();
         this.mongoManager = new MongoManager( this.config, this.id );
         await this.mongoManager.init();
         this.__setStatus( Crawler.statusType.initialised );
@@ -69,35 +67,58 @@ class Crawler {
             args: [`--lang=${this.config.browserLanguage}`],
             ...this.config.browserOptions
         };
-
-        if ( !this.browser )
-            this.browser = await puppeteer.launch( browserOptions );
-        else if ( !this.browser.isConnected() ) {
-            await this.closeBrowser();
-            this.browser = await puppeteer.launch( browserOptions );
-        }
+        this.browser = await puppeteer.launch( browserOptions );
     }
 
+    async initPage() {
+        this.page = await this.browser.newPage();
+    }
 
     async closeBrowser() {
-        if ( this.browser )
-            await this.browser.close();
+        await this.closePage();
+
+        try {
+            if ( this.browser && this.browser.isConnected() )
+                await this.browser.close();
+        } catch ( err ) {
+            this.logError( 'an error occured in closeBrowser', err.message );
+        }
+        delete this.browser;
         this.browser = null;
     }
 
+    async closePage() {
+        try {
+            if ( this.page && !this.page.isClosed() )
+                await this.page.close();
+        } catch ( err ) {
+            this.logError( 'an error occured in closePage', err.message );
+        }
+        delete this.page;
+        this.page = null;
+    }
+
+    async closeMongoManager() {
+        try {
+            if ( this.mongoManager )
+                await this.mongoManager.close();
+        } catch ( err ) {
+            this.logError( 'an error occured in closePage', err.message );
+        }
+        delete this.mongoManager;
+        this.mongoManager = null;
+    }
+
+
     async stop() {
         this.__setStatus( Crawler.statusType.stopping );
-        try {
-            // eslint-disable-next-line no-async-promise-executor
-            await new Promise( async resolve => {
-                while ( this.__status !== Crawler.statusType.stopped ) {
-                    await wait( 50 );
-                }
-                resolve();
-            } ).timeout( this.config.stopMaxTimeout );
-        } catch {
-            await this.__stopNext();
-        }
+        // eslint-disable-next-line no-async-promise-executor
+        await new Promise( async resolve => {
+            while ( this.__status !== Crawler.statusType.stopped ) {
+                await wait( 50 );
+            }
+            resolve();
+        } );
         return true;
     }
 
@@ -110,23 +131,38 @@ class Crawler {
         } else
             this.error( 'no start link in config - you can add "start": "mylink.com" to config file' );
     }
+    
 
-    async reStart() {
-        this.log("WARNING RE-START -----------------------------------------")
-        await this.stop();
-        await this.start();
+    /** ******* PRIVATE FUNCTION *********/
+
+    async __loop( url ) {
+        let _url = url;
+        try {
+            let isFirstLoop = false;
+            while (
+                (this.config.loop || !isFirstLoop)
+                && (this.status !== Crawler.statusType.stopping
+                    || this.status !== Crawler.statusType.stopped)
+            ) {
+                isFirstLoop = true;
+                // SECURITY check url
+                if ( !_url ) throw this.error( 'url is not valid', _url );
+
+                // CRAWL PAGE
+                _url = await this.__crawlPage( _url );
+            }
+            this.__stopNext();
+
+        } catch ( err ) {
+            this.logError( 'An error was occured in loop: ', err );
+            throw err;
+        }
     }
 
 
-    /********* PRIVATE FUNCTION *********/
-
-    async __loop( url ) {
-        // check stop
-        if ( this.__doIhaveToStop() ) return;
-
-        // check that loop continues
-        this.__loopSecurity();
-
+    async __crawlPage( url ) {
+        // eslint-disable-next-line no-async-promise-executor
+        this.__setUrl( url );
         const loopStart = performance.now();
         this.logTime( 'time to complete loop' );
 
@@ -152,60 +188,30 @@ class Crawler {
         if ( timeToFetch < this.config.timeBetweenTwoFetch )
             await wait( this.config.timeBetweenTwoFetch - timeToFetch );
 
-        // continue
-        if ( this.config.loop )
-            this.__loop( newUrl );
+        return newUrl;
     }
 
 
     async __stopNext() {
-        if ( this.__isStopNextStarted ) return;
-        this.__isStopNextStarted = true;
         await this.__runPlugins( 'onStop' );
-        if ( this.page && !this.page.isClosed() )
-            await this.page.close();
-        this.page = null;
-        if ( this.mongoManager )
-            this.mongoManager.close();
-        this.mongoManager = null;
+        await this.closeBrowser();
+        await this.closeMongoManager();
         this.__setStatus( Crawler.statusType.stopped );
-        this.__isStopNextStarted = false;
     }
 
-    __doIhaveToStop() {
-        if ( this.__status === Crawler.statusType.stopping ) {
-            this.__stopNext();
-            return true;
-        }
-        if ( this.__status === Crawler.statusType.stopped )
-            return true;
-
-        return false;
-    }
-
-    async __runningReinit() {
-        this.logDebug( 'reinit' );
-        await this.initBrowser();
-        if ( this.page && !this.page.isClosed() )
-            await this.page.close();
-        this.page = await this.browser.newPage();
-        this.__runPlugins( 'onReinit' );
-    }
-
-    /**
-     * check that the loop continues. If not restart the loop
-     */
-    __loopSecurity() {
-        functionDelaying( () => {
-            if ( ![Crawler.statusType.stopping, Crawler.statusType.stopped].includes( this.__status ) )
-                this.reStart();
-        }, this.config.loopMaxTimeout, `crawler${this.id}Loop` );
-    }
 
     __setStatus( status ) {
         this.__status = status;
         this.log( status );
+        this.__informManager();
     }
+
+    __setUrl( url ) {
+        this.__url = url;
+        this.log( url );
+        this.__informManager();
+    }
+
 
     async __runPlugins( pluginMethod, ...params ) {
         return Promise.map( this.__plugins, async plugin => {
@@ -222,18 +228,16 @@ class Crawler {
             return undefined;
         } );
     }
+
+    async __informManager() {
+        await axios.post( `http://localhost:${this.config.managerServerPort}/crawlerUpdate`, {
+            id: this.id,
+            status: this.status,
+            url: this.__url,
+        } );
+    }
 }
 
-
-Crawler.crawlerList = [];
-
-Crawler.statusType = {
-    initial: 'initial',
-    initialising: 'initialising',
-    initialised: 'initialised',
-    running: 'running',
-    stopping: 'stopping',
-    stopped: 'stopped',
-};
+Crawler.statusType = crawlerStatusType;
 
 module.exports = Crawler;

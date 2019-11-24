@@ -17,7 +17,8 @@
     "startdev": "nodemon src/app.js",
     "start-docker-dev": "docker-compose -f dev.docker-compose.yml down && docker-compose -f dev.docker-compose.yml up",
     "down-docker-dev": "docker-compose -f dev.docker-compose.yml down -v",
-    "build-docker-dev": "docker-compose -f dev.docker-compose.yml build"
+    "build-docker-dev": "docker-compose -f dev.docker-compose.yml build",
+    "save-logs-docker-dev": "docker-compose -f dev.docker-compose.yml logs --no-color  >& logs.txt"
   },
   "dependencies": {
     "@ecadagiani/jstools": "^1.2.2",

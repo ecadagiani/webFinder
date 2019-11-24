@@ -3,7 +3,6 @@
     "showPluginTimeoutError": true,
     "throwError": false,
     "loop": true,
-    "nbCrawler": 1,
     "start": "",
     "searchSelectors": [],
     "mongo": {
@@ -21,9 +20,9 @@
         "ignoreHTTPSErrors": true,
         "headless": true
     },
-    "stopMaxTimeout": 20000,
-    "loopMaxTimeout": 60000,
     "waitForPageLoadTimeout": 30000,
+    "maxErrorFetchPage": 3,
+    "maxErrorGetNewLink": 3,
     "maxUrlLength": 800,
     "timeBetweenTwoFetch": 1000,
     "crawlInvisibleLink": false,
@@ -104,5 +103,10 @@
     ],
     "maxCombinationSearchTags": 2,
     "offsetMaxSearchEngine": 100,
-    "searchEngineLanguage": "uk-en"
+    "searchEngineLanguage": "uk-en",
+
+
+    "loopMaxTimeout": 120000,
+    "managerServerPort": 3000,
+    "nbCrawler": 1
 }

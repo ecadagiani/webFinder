@@ -36,8 +36,7 @@ class MongoManager {
         const __connect = async ( errorCount = 0 ) => {
             this.debugLog( `try to connect to ${mongoUri}` );
             try {
-                const connection = await mongoose.createConnection( mongoUri, options );
-                return connection;
+                return await mongoose.createConnection( mongoUri, options );
             } catch ( err ) {
                 if ( errorCount >= maxConnectionTry )
                     throw err;
@@ -53,9 +52,14 @@ class MongoManager {
 
     }
 
-    close() {
-        this.__connection.close();
-        this.debugLog( 'connection closed' );
+    async close() {
+        try {
+            await this.__connection.close();
+            await wait( 100 );
+            this.log( 'Connection closed' );
+        } catch ( err ) {
+            this.log( 'An error occured in close:', err );
+        }
     }
 
     async createOrUpdateDomain( { domain, score = null, nbFetch = null } ) {
@@ -241,7 +245,7 @@ class MongoManager {
             }
         ];
 
-        if ( typeof minimumScore === "number" ) {
+        if ( typeof minimumScore === 'number' ) {
             query.push( {
                 '$match': {
                     'score': {
@@ -277,7 +281,7 @@ class MongoManager {
 
     log( ...texts ) {
         const date = new Date();
-        console.log( `[${date.toISOString()}] MongoManager ${this.id}: `, ...texts );
+        console.log( `[${date.toISOString()}] Crawler ${this.id} - Mongo: `, ...texts );
     }
 
     debugLog( ...texts ) {
