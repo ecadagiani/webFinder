@@ -17,11 +17,14 @@ class Manager {
         this.app = null;
         this.crawlerProcess = [];
         this.mongoManager = null;
+        this.__interval = null;
     }
 
     async init() {
         this.log( 'initialising' );
-        this.mongoManager = new MongoManager( this.config, 'manager' );
+        this.mongoManager = new MongoManager( this.config, 'Manager' );
+        await this.mongoManager.init();
+
         this.app = express();
         this.app.use( bodyParser.urlencoded( { 'extended': true } ) );
         this.app.use( bodyParser.json() );
@@ -41,6 +44,16 @@ class Manager {
         this.app.listen( this.config.managerServerPort, () => {
             this.log( `server listening on port ${this.config.managerServerPort}` );
         } );
+        this.__interval = setInterval( () => {
+            this.crawlerProcess.forEach( ( { process, id, lastUpdate, status } ) => {
+                if (
+                    Date.now() - lastUpdate > this.config.loopMaxTimeout
+                    && status !== crawlerStatusType.stopped
+                ) {
+                    this.__restartCrawler( id );
+                }
+            } );
+        }, 1000 );
     }
 
 
@@ -52,52 +65,50 @@ class Manager {
         this.app.post( '/crawlerUpdate', ( req, res ) => {
             const { id, url, status } = req.body;
             this.__updateCrawlerProcess( { id, status, url } );
-            this.__watchCrawlerProcess( id );
             res.send( true );
         } );
     }
 
 
     async __startCrawler( id ) {
+        this.log( `start crawler ${id}` );
         const process = childProcess.fork( './src/startCrawler.js', [id] );
         process.on( 'error', ( err ) => {
             this.log( `crawler ${id} error:`, err );
-            this.__restartCrawler( id );
+            // this.__restartCrawler( id );
         } );
         process.on( 'exit', ( code ) => {
             this.log( `crawler ${id} exit` );
-            this.__restartCrawler( id );
+            // this.restartCrawler( id );
         } );
 
-        this.log( `start crawler ${id}, with pid ${process.pid}` );
+        this.logDebug( `crawler ${id} started with pid ${process.pid}` );
         this.__updateCrawlerProcess( {
             id, process, status: crawlerStatusType.initial
         } );
-        this.__watchCrawlerProcess( id );
     }
 
 
     async __restartCrawler( id ) {
         const index = findIndex( this.crawlerProcess, { id } );
-        if ( index > -1 && this.crawlerProcess[index].status !== crawlerStatusType.stopped && this.config.loop ) {
-            this.crawlerProcess[index].process.kill();
-            this.log( 'kill crawler:', id );
-            await wait( 1000 );
-            await this.mongoManager.createOrUpdatePage( {
-                url: this.crawlerProcess[index].url,
-                fetching: false
-            } );
+        if ( index > -1 && this.config.loop && !this.crawlerProcess[index].restart ) {
+            this.log( `restart crawler ${id}` );
+            this.crawlerProcess[index].restart = true;
+            if ( this.crawlerProcess[index].process ) {
+                this.crawlerProcess[index].process.kill();
+                this.logDebug( `crawler ${id} has been killed` );
+                await wait( 1000 );
+                delete this.crawlerProcess[index].process;
+            }
+            if ( this.crawlerProcess[index].url ) {
+                await this.mongoManager.createOrUpdatePage( {
+                    url: this.crawlerProcess[index].url,
+                    fetching: false
+                } );
+            }
             await this.__startCrawler( id );
+            this.crawlerProcess[index].restart = false;
         }
-    }
-
-
-    __watchCrawlerProcess( id ) {
-        const index = findIndex( this.crawlerProcess, { id } );
-        clearTimeout( this.crawlerProcess[index].timeout );
-        this.crawlerProcess[index].timeout = setTimeout( () => {
-            this.__restartCrawler( id );
-        }, this.config.loopMaxTimeout );
     }
 
 
@@ -106,7 +117,6 @@ class Manager {
         url = null,
         status = null,
         process = null,
-        timeout = null,
         lastUpdate = Date.now()
     } ) {
         const index = findIndex( this.crawlerProcess, { id } );
@@ -114,12 +124,22 @@ class Manager {
             if ( url ) this.crawlerProcess[index].url = url;
             if ( status ) this.crawlerProcess[index].status = status;
             if ( process ) this.crawlerProcess[index].process = process;
-            if ( timeout ) this.crawlerProcess[index].timeout = timeout;
             this.crawlerProcess[index].lastUpdate = lastUpdate;
+            this.logDebug(
+                `receive update from crawler ${id}:`,
+                {
+                    ...this.crawlerProcess[index],
+                    process: this.crawlerProcess[index].process ? typeof this.crawlerProcess[index].process : null
+                }
+            );
         } else {
             this.crawlerProcess.push( {
-                process, id, url, lastUpdate, timeout, status
+                process, id, url, lastUpdate, status
             } );
+            this.logDebug(
+                `add new crawler ${id}:`,
+                { url, status, lastUpdate, process: process ? typeof process : null }
+            );
         }
     }
 
