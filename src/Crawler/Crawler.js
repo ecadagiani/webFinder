@@ -41,6 +41,8 @@ class Crawler {
         this.__tryToGetNewLink = __tryToGetNewLink.bind( this );
 
         this.logDebug( 'debug mode' );
+        if ( !this.config.loop )
+            this.log( 'noLoop mode' );
     }
 
 
@@ -141,8 +143,8 @@ class Crawler {
             let isFirstLoop = false;
             while (
                 (this.config.loop || !isFirstLoop)
-                && (this.status !== Crawler.statusType.stopping
-                    || this.status !== Crawler.statusType.stopped)
+                && this.status !== Crawler.statusType.stopping
+                && this.status !== Crawler.statusType.stopped
             ) {
                 isFirstLoop = true;
                 // SECURITY check url
@@ -211,7 +213,6 @@ class Crawler {
         this.log( url );
         await this.__informManager();
     }
-
 
     async __runPlugins( pluginMethod, ...params ) {
         return Promise.map( this.__plugins, async plugin => {
