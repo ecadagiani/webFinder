@@ -281,7 +281,7 @@ class MongoManager {
 
     log( ...texts ) {
         const date = new Date();
-        console.log( `[${date.toISOString()}] Crawler ${this.id} - Mongo: `, ...texts );
+        console.log( `[${date.toISOString()}] ${this.id} - Mongo: `, ...texts );
     }
 
     debugLog( ...texts ) {

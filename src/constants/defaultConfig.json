@@ -14,20 +14,20 @@
         "maxConnectionTry": 3,
         "timeBetweenEachConnectionTry": 4000
     },
-    "pluginTimeout": 3000,
     "browserLanguage": "en-US",
     "browserOptions": {
         "ignoreHTTPSErrors": true,
         "headless": true
     },
+    "pluginTimeout": 3000,
+    "timeBetweenTwoFetch": 1000,
     "waitForPageLoadTimeout": 30000,
+    "timeoutForBodyAppear": 5000,
+    "waitForBodyAppear": true,
     "maxErrorFetchPage": 3,
     "maxErrorGetNewLink": 3,
     "maxUrlLength": 800,
-    "timeBetweenTwoFetch": 1000,
     "crawlInvisibleLink": false,
-    "waitForBodyAppear": true,
-    "timeoutForBodyAppear": 5000,
     "domainScoreFunction": "(domain, nbFetch) => nbFetch < 50 ? 0 : Math.floor( (nbFetch-50) * -5 )",
     "interestMinimumScoreToContinue": 0,
     "interestMinimumScoreToFetchDb": 0,
@@ -106,7 +106,7 @@
     "searchEngineLanguage": "uk-en",
 
 
-    "loopMaxTimeout": 120000,
+    "loopMaxTimeout": 240000,
     "managerServerPort": 3000,
     "nbCrawler": 1
 }

@@ -50,13 +50,13 @@ class Crawler {
 
 
     async init() {
-        this.__setStatus( Crawler.statusType.initialising );
+        await this.__setStatus( Crawler.statusType.initialising );
         await this.initBrowser();
         await this.initPage();
 
-        this.mongoManager = new MongoManager( this.config, this.id );
+        this.mongoManager = new MongoManager( this.config, `Crawler ${this.id}` );
         await this.mongoManager.init();
-        this.__setStatus( Crawler.statusType.initialised );
+        await this.__setStatus( Crawler.statusType.initialised );
         this.__plugins = loadPlugins( this );
         await this.__runPlugins( 'onInit' );
     }
@@ -111,7 +111,7 @@ class Crawler {
 
 
     async stop() {
-        this.__setStatus( Crawler.statusType.stopping );
+        await this.__setStatus( Crawler.statusType.stopping );
         // eslint-disable-next-line no-async-promise-executor
         await new Promise( async resolve => {
             while ( this.__status !== Crawler.statusType.stopped ) {
@@ -124,14 +124,14 @@ class Crawler {
 
     async start() {
         if ( get( this.config, 'start' ) ) {
-            this.__setStatus( Crawler.statusType.running );
+            await this.__setStatus( Crawler.statusType.running );
             await this.__runPlugins( 'onStart' );
             const startUrl = Array.isArray( this.config.start ) ? this.config.start[this.id - 1] : this.config.start;
             this.__loop( startUrl );
         } else
             this.error( 'no start link in config - you can add "start": "mylink.com" to config file' );
     }
-    
+
 
     /** ******* PRIVATE FUNCTION *********/
 
@@ -162,7 +162,7 @@ class Crawler {
 
     async __crawlPage( url ) {
         // eslint-disable-next-line no-async-promise-executor
-        this.__setUrl( url );
+        await this.__setUrl( url );
         const loopStart = performance.now();
         this.logTime( 'time to complete loop' );
 
@@ -196,20 +196,20 @@ class Crawler {
         await this.__runPlugins( 'onStop' );
         await this.closeBrowser();
         await this.closeMongoManager();
-        this.__setStatus( Crawler.statusType.stopped );
+        await this.__setStatus( Crawler.statusType.stopped );
     }
 
 
-    __setStatus( status ) {
+    async __setStatus( status ) {
         this.__status = status;
         this.log( status );
-        this.__informManager();
+        await this.__informManager();
     }
 
-    __setUrl( url ) {
+    async __setUrl( url ) {
         this.__url = url;
         this.log( url );
-        this.__informManager();
+        await this.__informManager();
     }
 
 
