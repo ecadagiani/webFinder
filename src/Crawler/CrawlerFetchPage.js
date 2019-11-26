@@ -199,7 +199,7 @@ async function fetchPage( url ) {
     await this.__runPlugins( 'onPageIsFetched', { ...pageData, links, url } );
 
     // save all data
-    this.logTime( 'time to save data in mongo' );
+    this.logTime( 'time to save fetchData in mongo' );
     const pages = [
         {
             data: {
@@ -224,7 +224,7 @@ async function fetchPage( url ) {
         }) ),
     ];
     await Promise.map( pages, ( { data, options } ) => this.mongoManager.createOrUpdatePage( data, options ) );
-    this.logTimeEnd( 'time to save data in mongo' );
+    this.logTimeEnd( 'time to save fetchData in mongo' );
     return pages.map( ( { data } ) => data );
 }
 

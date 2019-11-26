@@ -21,11 +21,11 @@ class MongoManager {
     }
 
     async init() {
-        this.debugLog( 'initialising' );
+        this.log( 'initialising' );
         await this.connect();
         this.__PageModel = this.__connection.model( 'Page', PageSchema );
         this.__DomainModel = this.__connection.model( 'Domain', DomainSchema );
-        this.debugLog( 'initialised' );
+        this.log( 'initialised' );
     }
 
     async connect() {

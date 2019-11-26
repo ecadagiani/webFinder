@@ -1,7 +1,7 @@
 {
     "debug": true,
     "throwError": false,
-    "loop": false,
+    "loop": true,
     "nbCrawler": 2,
     "start": "https://fr.reactjs.org/",
     "searchSelectors": [
