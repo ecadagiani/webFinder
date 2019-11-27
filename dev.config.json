@@ -1,8 +1,8 @@
 {
-    "debug": true,
-    "throwError": false,
+    "debug": false,
+    "throwError": true,
     "loop": true,
-    "nbCrawler": 2,
+    "nbCrawler": 1,
     "start": "https://fr.reactjs.org/",
     "searchSelectors": [
         {
@@ -10,6 +10,11 @@
             "selector": "#root"
         }
     ],
+    "interestLanguageImpact": 0,
+    "uninterestLanguageImpact": 0,
+    "interestMinimumScoreToContinue": 0,
+    "interestMinimumScoreToFetchDb": 5,
+    "interestRandRange": { "min": 0, "max": 10 },
     "mongo": {
         "host": "web_finder_mongo",
         "port": "27017",
