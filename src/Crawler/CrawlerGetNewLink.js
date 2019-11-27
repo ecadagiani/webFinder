@@ -39,29 +39,22 @@ async function __getNewLink( previousFetchedPage = [] ) {
         return pluginNewUrl;
     }
 
-    /* process by PREVIOUS PAGE -------------------- */
+
     let futurPage = null;
-
-    // Prepare previous Page
-    const mongoPreviousPage = await this.mongoManager.getPreviousPagesData( previousFetchedPage.map( ( { url } ) => url ) );
-    futurPage = chain( mongoPreviousPage )
-        .filter( page => page.score > this.config.interestMinimumScoreToContinue )
-        .head()
-        .value();
-
+    /* process by PREVIOUS PAGE -------------------- */
+    futurPage = await this.mongoManager.getNewLinkFromPreviousPage(
+        previousFetchedPage.map( ( { url } ) => url ), this.config.interestMinimumScoreToContinue
+    );
     // if we have fetched a link with a correct score (interestMinimumScoreToContinue), we return this
     if ( get( futurPage, 'url' ) ) {
         this.logDebug( 'New link resolved by previous links: ', futurPage );
         return futurPage.url;
-    } else if ( this.config.debug ) { // log debug
-        this.logDebug( 'The best previous page, did not have a sufficient score, his score was: ',
-            get( mongoPreviousPage, '0.score' )
-        );
     }
+
 
     /* process by BEST PAGE FROM MONGO -------------------- */
     // if we have zero valid links, we get new link from mongo, but with a decent score (interestMinimumScoreToFetchDb)
-    futurPage = await this.mongoManager.getBestPageToFetch( this.config.interestMinimumScoreToFetchDb );
+    futurPage = await this.mongoManager.getNewLinkFromMongoPage( this.config.interestMinimumScoreToFetchDb );
     if ( get( futurPage, 'url' ) ) {
         this.logDebug( 'New link resolved by best page from mongo: ', futurPage );
         return futurPage.url;
@@ -83,7 +76,7 @@ async function __getNewLink( previousFetchedPage = [] ) {
 
     /* process by PAGE FROM MONGO -------------------- */
     // if searchEngine link have already been fetch, we get link from mongo without decent score
-    futurPage = await this.mongoManager.getBestPageToFetch();
+    futurPage = await this.mongoManager.getNewLinkFromMongoPage();
     if ( get( futurPage, 'url' ) ) {
         this.logDebug( 'New link resolved by page from mongo: ', futurPage );
         return futurPage.url;

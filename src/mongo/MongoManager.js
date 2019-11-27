@@ -5,6 +5,7 @@ const { wait } = require( '@ecadagiani/jstools' );
 const PageSchema = require( './PageSchema' );
 const DomainSchema = require( './DomainSchema' );
 const { getDomain } = require( '../lib/tools' );
+const { mongoSampleSize } = require( '../constants/crawlerconstants' );
 
 mongoose.set( 'useUnifiedTopology', true );
 mongoose.set( 'useFindAndModify', false );
@@ -156,7 +157,7 @@ class MongoManager {
         return this.__PageModel.findOne( { url } );
     }
 
-    async getPreviousPagesData( urls ) {
+    async getNewLinkFromPreviousPage( urls, minScore ) {
         const query = [
             {
                 '$match': {
@@ -195,22 +196,35 @@ class MongoManager {
                         ]
                     }
                 }
-            }, {
+            },
+            {
+                '$match': {
+                    'score': { '$gte': minScore }
+                }
+            },
+            {
                 '$sort': {
                     'score': -1
                 }
+            }, {
+                '$limit': 1
             }
         ];
-        return this.__PageModel.aggregate( query ).exec();
+        const res = await this.__PageModel.aggregate( query ).exec();
+        return head( res );
     }
 
-    async getBestPageToFetch( minimumScore = null ) {
+    async getNewLinkFromMongoPage( minScore = null ) {
         const query = [
             {
                 '$match': {
                     'fetched': false,
                     'fetching': false,
                     'error': false
+                }
+            }, {
+                '$sample': {
+                    size: mongoSampleSize
                 }
             }, {
                 '$lookup': {
@@ -222,46 +236,32 @@ class MongoManager {
             }, {
                 '$project': {
                     'url': '$url',
-                    'fetchInterest': '$fetchInterest',
-                    'domain': {
-                        '$arrayElemAt': [
-                            '$domainObject', 0
-                        ]
-                    }
-                }
-            }, {
-                '$project': {
-                    'url': '$url',
                     'score': {
-                        '$add': [
-                            '$fetchInterest', {
-                                '$ifNull': [
-                                    '$domain.score', 0
-                                ]
-                            }
-                        ]
+                        '$add': ['$fetchInterest', { '$ifNull': [ '$domainObject[0].score', 0 ] }]
                     }
                 }
             }
         ];
 
-        if ( typeof minimumScore === 'number' ) {
+        if ( typeof minScore === 'number' ) {
             query.push( {
                 '$match': {
                     'score': {
-                        '$gt': minimumScore
+                        '$gt': minScore
                     }
                 }
             } );
         }
-        query.push( {
-            '$sort': {
-                'score': -1
+
+        query.push(
+            {
+                '$sort': {
+                    'score': -1
+                }
+            }, {
+                '$limit': 1
             }
-        } );
-        query.push( {
-            '$limit': 1
-        } );
+        );
         const res = await this.__PageModel.aggregate( query ).exec();
         return head( res );
     }

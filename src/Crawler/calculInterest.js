@@ -38,8 +38,9 @@ async function calculInterestScore( url, domain, linkTexts, pageLanguage, config
 
     // rand
     const { min, max } = interestRandRange || {};
-    if ( min === 'number' && max === 'number' && min !== max )
-        score += getRndInteger( interestRandRange.min, interestRandRange.max ); // add some random
+    if ( typeof min === 'number' && typeof max === 'number' ) {
+        score += getRndInteger( min, max ); // add some random
+    }
 
     return score;
 }

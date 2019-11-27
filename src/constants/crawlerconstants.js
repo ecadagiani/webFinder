@@ -20,5 +20,6 @@ const crawlerStatusType = {
 const searchEngineDomain = 'duckduckgo.com';
 const searchEngineUrl = "https://duckduckgo.com/lite?q=${query}&s=${offset}&dc=${offset}&kl=${language}";
 
+const mongoSampleSize = 1000;
 
-module.exports = { basicNavigationErrorCode, searchEngineDomain, searchEngineUrl, crawlerStatusType };
+module.exports = { basicNavigationErrorCode, searchEngineDomain, searchEngineUrl, crawlerStatusType, mongoSampleSize };
