@@ -2,17 +2,23 @@ const { readdirSync } = require( 'fs' );
 const { promiseFunction } = require( '../lib/tools' );
 
 
-function toolsPlugins( pluginsFolderPath, ...constructorParams ) {
+function loadPlugins( pluginsFolderPath, constructorParams, logDebug ) {
     const plugins = [];
     readdirSync( pluginsFolderPath ).forEach( function( file ) {
         if ( file.indexOf( 'Plugin' ) === 0 ) {
-            const Plugin = require( `${pluginsFolderPath}/${file}` );
-            plugins.push(
-                new Plugin( ...constructorParams )
-            );
+            logDebug('load plugin', `${pluginsFolderPath}/${file}`);
+            try {
+                const Plugin = require( `${pluginsFolderPath}/${file}` );
+                logDebug('plugin value: ', Plugin);
+                plugins.push(
+                    new Plugin( ...constructorParams )
+                );
+            } catch ( err ) {
+                console.error( err );
+                console.error( "Above error emitted on load:", `${pluginsFolderPath}/${file}` );
+            }
         }
     } );
-
     return plugins;
 }
 
@@ -25,7 +31,7 @@ async function runPlugin( {
             try {
                 res = await promiseFunction( plugin[pluginMethod] )( ...params ).timeout( timeout );
             } catch ( e ) {
-                handleError(e);
+                handleError( e );
             }
             return res;
         }
@@ -34,5 +40,5 @@ async function runPlugin( {
 }
 
 module.exports = {
-    loadPlugins: toolsPlugins, runPlugin
+    loadPlugins, runPlugin
 };

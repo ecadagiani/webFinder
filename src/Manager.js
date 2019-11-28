@@ -27,7 +27,7 @@ class Manager {
         this.mongoManager = new MongoManager( this.config, 'Manager' );
         await this.mongoManager.init();
 
-        this.__plugins = loadPlugins( managerPluginsFolderPath, this );
+        this.__plugins = loadPlugins( managerPluginsFolderPath, [this], this.logDebug.bind(this) );
 
         this.app = express();
         this.app.use( bodyParser.urlencoded( { 'extended': true } ) );
