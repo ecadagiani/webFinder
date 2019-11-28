@@ -5,15 +5,6 @@
     "loop": true,
     "start": "",
     "searchSelectors": [],
-    "mongo": {
-        "host": "",
-        "port": "",
-        "database": "",
-        "username": "",
-        "password": "",
-        "maxConnectionTry": 3,
-        "timeBetweenEachConnectionTry": 4000
-    },
     "browserLanguage": "en-US",
     "browserOptions": {
         "ignoreHTTPSErrors": true,
@@ -104,6 +95,18 @@
     "maxCombinationSearchTags": 2,
     "offsetMaxSearchEngine": 100,
     "searchEngineLanguage": "uk-en",
+
+
+    "mongo": {
+        "host": "",
+        "port": "",
+        "database": "",
+        "username": "",
+        "password": "",
+        "maxConnectionTry": 3,
+        "timeBetweenEachConnectionTry": 4000
+    },
+    "mongoSampleSize": 1000,
 
 
     "loopMaxTimeout": 240000,

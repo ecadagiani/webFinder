@@ -6,8 +6,9 @@ const childProcess = require( 'child_process' );
 const { wait } = require( '@ecadagiani/jstools' );
 
 const defaultConfig = require( './constants/defaultConfig' );
-const { crawlerStatusType } = require( './constants/crawlerconstants' );
+const { crawlerStatusType, managerPluginsFolderPath } = require( './constants/crawlerconstants' );
 const { initConfig } = require( './lib/initConfig' );
+const { loadPlugins, runPlugin } = require( './lib/toolsPlugins' );
 const config = require( '../config.json' );
 const MongoManager = require( './mongo/MongoManager' );
 
@@ -18,12 +19,15 @@ class Manager {
         this.crawlerProcess = [];
         this.mongoManager = null;
         this.__interval = null;
+        this.__plugins = [];
     }
 
     async init() {
         this.log( 'initialising' );
         this.mongoManager = new MongoManager( this.config, 'Manager' );
         await this.mongoManager.init();
+
+        this.__plugins = loadPlugins( managerPluginsFolderPath, this );
 
         this.app = express();
         this.app.use( bodyParser.urlencoded( { 'extended': true } ) );
@@ -36,11 +40,12 @@ class Manager {
         for ( let i = 0; i < this.config.nbCrawler; i++ ) {
             await this.__startCrawler( i + 1 );
         }
+        await this.__runPlugins( 'onInit' );
         this.log( 'initialised' );
     }
 
 
-    start() {
+    async start() {
         this.app.listen( this.config.managerServerPort, () => {
             this.log( `server listening on port ${this.config.managerServerPort}` );
         } );
@@ -54,6 +59,7 @@ class Manager {
                 }
             } );
         }, 1000 );
+        await this.__runPlugins( 'onStart' );
     }
 
 
@@ -82,6 +88,7 @@ class Manager {
             // this.restartCrawler( id );
         } );
 
+        await this.__runPlugins( 'onStartCrawler', id, process );
         this.logDebug( `crawler ${id} started with pid ${process.pid}` );
         this.__updateCrawlerProcess( {
             id, process, status: crawlerStatusType.initial
@@ -125,6 +132,8 @@ class Manager {
             if ( status ) this.crawlerProcess[index].status = status;
             if ( process ) this.crawlerProcess[index].process = process;
             this.crawlerProcess[index].lastUpdate = lastUpdate;
+
+            this.__runPlugins( 'onCrawlerUpdate', this.crawlerProcess[index] );
             this.logDebug(
                 `receive update from crawler ${id}:`,
                 {
@@ -136,6 +145,7 @@ class Manager {
             this.crawlerProcess.push( {
                 process, id, url, lastUpdate, status
             } );
+            this.__runPlugins( 'onCrawlerUpdate', { process, id, url, lastUpdate, status } );
             this.logDebug(
                 `add new crawler ${id}:`,
                 { url, status, lastUpdate, process: process ? typeof process : null }
@@ -143,6 +153,18 @@ class Manager {
         }
     }
 
+    async __runPlugins( pluginMethod, ...params ) {
+        return runPlugin( {
+            plugins: this.__plugins,
+            timeout: this.config.pluginTimeout,
+            pluginMethod,
+            params,
+            handleError: ( e ) => {
+                if ( this.config.showPluginTimeoutError )
+                    this.logError( 'Plugin error:', e.message );
+            },
+        } );
+    }
 
     log( ...texts ) {
         const date = new Date();

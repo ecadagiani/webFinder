@@ -1,6 +1,6 @@
-const WebFinderPlugin = require( '../lib/WebFinderPlugin' );
+const CrawlerPlugin = require( '../lib/CrawlerPlugin' );
 
-class PluginTest extends WebFinderPlugin {
+class PluginTest extends CrawlerPlugin {
 
     constructor( ...params ) {
         super( ...params );

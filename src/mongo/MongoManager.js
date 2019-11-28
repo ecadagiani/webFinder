@@ -5,7 +5,6 @@ const { wait } = require( '@ecadagiani/jstools' );
 const PageSchema = require( './PageSchema' );
 const DomainSchema = require( './DomainSchema' );
 const { getDomain } = require( '../lib/tools' );
-const { mongoSampleSize } = require( '../constants/crawlerconstants' );
 
 mongoose.set( 'useUnifiedTopology', true );
 mongoose.set( 'useFindAndModify', false );
@@ -13,8 +12,8 @@ mongoose.set( 'useFindAndModify', false );
 const domainUpdateScoreSemaphore = createSemaphore( 1 );
 
 class MongoManager {
-    constructor( { mongo, domainScoreFunction, debug }, id ) {
-        this.config = { ...mongo, domainScoreFunction, debug };
+    constructor( { mongo, domainScoreFunction, debug, mongoSampleSize }, id ) {
+        this.config = { ...mongo, domainScoreFunction, debug, mongoSampleSize };
         this.id = id;
         this.__connection = null;
         this.__PageModel = null;
@@ -224,7 +223,7 @@ class MongoManager {
                 }
             }, {
                 '$sample': {
-                    size: mongoSampleSize
+                    size: this.config.mongoSampleSize
                 }
             }, {
                 '$lookup': {
@@ -237,7 +236,7 @@ class MongoManager {
                 '$project': {
                     'url': '$url',
                     'score': {
-                        '$add': ['$fetchInterest', { '$ifNull': [ '$domainObject[0].score', 0 ] }]
+                        '$add': ['$fetchInterest', { '$ifNull': ['$domainObject[0].score', 0] }]
                     }
                 }
             }
