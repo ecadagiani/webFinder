@@ -59,7 +59,7 @@ class Crawler {
         this.mongoManager = new MongoManager( this.config, `Crawler ${this.id}` );
         await this.mongoManager.init();
         await this.__setStatus( Crawler.statusType.initialised );
-        this.__plugins = loadPlugins( crawlerPluginsFolderPath, this );
+        this.__plugins = loadPlugins( crawlerPluginsFolderPath, [this], this.logDebug.bind(this) );
         await this.__runPlugins( 'onInit' );
     }
 
