@@ -4,10 +4,10 @@ const axios = require( 'axios' );
 const { wait, performance } = require( '@ecadagiani/jstools' );
 
 const defaultConfig = require( '../constants/defaultConfig' );
-const { crawlerStatusType } = require( '../constants/crawlerconstants' );
+const { crawlerStatusType, crawlerPluginsFolderPath } = require( '../constants/crawlerconstants' );
 
 const MongoManager = require( '../mongo/MongoManager' );
-const { loadPlugins } = require( '../lib/loadPlugins' );
+const { loadPlugins, runPlugin } = require( '../lib/toolsPlugins' );
 const { promiseFunction } = require( '../lib/tools' );
 const { initConfig } = require( '../lib/initConfig' );
 
@@ -59,7 +59,7 @@ class Crawler {
         this.mongoManager = new MongoManager( this.config, `Crawler ${this.id}` );
         await this.mongoManager.init();
         await this.__setStatus( Crawler.statusType.initialised );
-        this.__plugins = loadPlugins( this );
+        this.__plugins = loadPlugins( crawlerPluginsFolderPath, this );
         await this.__runPlugins( 'onInit' );
     }
 
@@ -215,18 +215,15 @@ class Crawler {
     }
 
     async __runPlugins( pluginMethod, ...params ) {
-        return Promise.map( this.__plugins, async plugin => {
-            if ( typeof plugin[pluginMethod] === 'function' ) {
-                let res = undefined;
-                try {
-                    res = await promiseFunction( plugin[pluginMethod] )( ...params ).timeout( this.config.pluginTimeout );
-                } catch ( e ) {
-                    if ( this.config.showPluginTimeoutError )
-                        this.logError( 'Plugin timed out' );
-                }
-                return res;
-            }
-            return undefined;
+        return runPlugin( {
+            plugins: this.__plugins,
+            timeout: this.config.pluginTimeout,
+            pluginMethod,
+            params,
+            handleError: ( e ) => {
+                if ( this.config.showPluginTimeoutError )
+                    this.logError( 'Plugin error:', e.message );
+            },
         } );
     }
 

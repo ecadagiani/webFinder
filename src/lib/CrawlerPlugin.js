@@ -1,4 +1,4 @@
-class WebFinderPlugin {
+class CrawlerPlugin {
     constructor( crawler ) {
         this.__crawler = crawler;
         this.log = this.log.bind( this );
@@ -78,7 +78,7 @@ class WebFinderPlugin {
 
 }
 
-module.exports = WebFinderPlugin;
+module.exports = CrawlerPlugin;
 
 /**
  * @typedef linkObject

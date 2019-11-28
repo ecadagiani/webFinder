@@ -268,7 +268,7 @@ the container has not been down before
 - correct english of readme
 - tag first stable version
 - re-fetch timeout page, after few days
-- optimise mongo get new link
+- add manager plugin docs to readme
 
 ## Authors
 - **Eden Cadagiani** ([HelloMyBot](https://hellomybot.io/fr/bienvenue/))

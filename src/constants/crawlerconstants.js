@@ -18,7 +18,16 @@ const crawlerStatusType = {
 };
 
 const searchEngineDomain = 'duckduckgo.com';
-const searchEngineUrl = "https://duckduckgo.com/lite?q=${query}&s=${offset}&dc=${offset}&kl=${language}";
+const searchEngineUrl = 'https://duckduckgo.com/lite?q=${query}&s=${offset}&dc=${offset}&kl=${language}';
 
+const crawlerPluginsFolderPath = '/app/src/plugins';
+const managerPluginsFolderPath = '/app/src/managerPlugins';
 
-module.exports = { basicNavigationErrorCode, searchEngineDomain, searchEngineUrl, crawlerStatusType };
+module.exports = {
+    basicNavigationErrorCode,
+    searchEngineDomain,
+    searchEngineUrl,
+    crawlerStatusType,
+    crawlerPluginsFolderPath,
+    managerPluginsFolderPath
+};
