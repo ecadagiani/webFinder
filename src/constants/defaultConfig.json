@@ -111,5 +111,6 @@
 
     "loopMaxTimeout": 240000,
     "managerServerPort": 3000,
-    "nbCrawler": 1
+    "nbCrawler": 1,
+    "crawlerProcessExitWait": 2000
 }

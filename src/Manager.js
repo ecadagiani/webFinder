@@ -27,7 +27,7 @@ class Manager {
         this.mongoManager = new MongoManager( this.config, 'Manager' );
         await this.mongoManager.init();
 
-        this.__plugins = loadPlugins( managerPluginsFolderPath, [this], this.logDebug.bind(this) );
+        this.__plugins = loadPlugins( managerPluginsFolderPath, [this], this.logDebug.bind( this ) );
 
         this.app = express();
         this.app.use( bodyParser.urlencoded( { 'extended': true } ) );
@@ -54,8 +54,9 @@ class Manager {
                 if (
                     Date.now() - lastUpdate > this.config.loopMaxTimeout
                     && status !== crawlerStatusType.stopped
+                    && this.config.loop
                 ) {
-                    this.__restartCrawler( id );
+                    this.__stopCrawler( id );
                 }
             } );
         }, 1000 );
@@ -79,13 +80,15 @@ class Manager {
     async __startCrawler( id ) {
         this.log( `start crawler ${id}` );
         const process = childProcess.fork( './src/startCrawler.js', [id] );
-        process.on( 'error', ( err ) => {
+        process.on( 'error', async ( err ) => {
             this.log( `crawler ${id} error:`, err );
-            // this.__restartCrawler( id );
+            await wait( this.config.crawlerProcessExitWait );
+            this.__startCrawler( id );
         } );
-        process.on( 'exit', ( code ) => {
+        process.on( 'exit', async ( code ) => {
             this.log( `crawler ${id} exit` );
-            // this.restartCrawler( id );
+            await wait( this.config.crawlerProcessExitWait );
+            this.__startCrawler( id );
         } );
 
         await this.__runPlugins( 'onStartCrawler', id, process );
@@ -96,16 +99,12 @@ class Manager {
     }
 
 
-    async __restartCrawler( id ) {
+    async __stopCrawler( id ) {
         const index = findIndex( this.crawlerProcess, { id } );
-        if ( index > -1 && this.config.loop && !this.crawlerProcess[index].restart ) {
-            this.log( `restart crawler ${id}` );
-            this.crawlerProcess[index].restart = true;
+        if ( index > -1 ) {
             if ( this.crawlerProcess[index].process ) {
                 this.crawlerProcess[index].process.kill();
                 this.logDebug( `crawler ${id} has been killed` );
-                await wait( 1000 );
-                delete this.crawlerProcess[index].process;
             }
             if ( this.crawlerProcess[index].url ) {
                 await this.mongoManager.createOrUpdatePage( {
@@ -113,8 +112,6 @@ class Manager {
                     fetching: false
                 } );
             }
-            await this.__startCrawler( id );
-            this.crawlerProcess[index].restart = false;
         }
     }
 
@@ -130,7 +127,10 @@ class Manager {
         if ( index > -1 ) {
             if ( url ) this.crawlerProcess[index].url = url;
             if ( status ) this.crawlerProcess[index].status = status;
-            if ( process ) this.crawlerProcess[index].process = process;
+            if ( process ) {
+                delete this.crawlerProcess[index].process;
+                this.crawlerProcess[index].process = process;
+            }
             this.crawlerProcess[index].lastUpdate = lastUpdate;
 
             this.__runPlugins( 'onCrawlerUpdate', this.crawlerProcess[index] );
