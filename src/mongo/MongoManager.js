@@ -230,8 +230,8 @@ class MongoManager {
                     'score': -1
                 }
             }, {
-                //     '$limit': 100
-                // }, {
+                '$limit': Math.round(this.config.mongoSampleSize / 10)
+            }, {
                 '$lookup': {
                     'from': 'pages',
                     'localField': 'domain',
