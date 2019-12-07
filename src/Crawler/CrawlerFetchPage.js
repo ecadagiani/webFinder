@@ -220,6 +220,9 @@ async function fetchPage( url ) {
                 url: link.href,
                 domain: link.domain,
                 fetchInterest: link.interestScore,
+            },
+            options: {
+                saveDomain: true
             }
         }) ),
     ];

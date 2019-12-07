@@ -1,6 +1,6 @@
 {
     "debug": false,
-    "throwError": true,
+    "throwError": false,
     "loop": true,
     "nbCrawler": 1,
     "start": "https://fr.reactjs.org/",

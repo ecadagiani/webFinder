@@ -67,17 +67,23 @@ class MongoManager {
             _id: domain,
             domain,
         };
-        if ( score !== null ) domainToSave.score = score;
-        if ( nbFetch !== null ) domainToSave.nbFetch = nbFetch;
 
-        await this.__DomainModel.updateOne(
-            { domain },
-            domainToSave,
-            {
-                setDefaultsOnInsert: true,
-                upsert: true,
-            }
-        );
+        try {
+            if ( score !== null ) domainToSave.score = score;
+            if ( nbFetch !== null ) domainToSave.nbFetch = nbFetch;
+
+            await this.__DomainModel.updateOne(
+                { domain },
+                domainToSave,
+                {
+                    setDefaultsOnInsert: true,
+                    upsert: true,
+                }
+            );
+        } catch ( err ) {
+            console.log( err );
+            console.log( err.code );
+        }
         return domainToSave;
     }
 
@@ -216,27 +222,37 @@ class MongoManager {
     async getNewLinkFromMongoPage( minScore = null ) {
         const query = [
             {
-                '$match': {
-                    'fetched': false,
-                    'fetching': false,
-                    'error': false
-                }
-            }, {
                 '$sample': {
-                    size: this.config.mongoSampleSize
+                    'size': this.config.mongoSampleSize
                 }
             }, {
+                '$sort': {
+                    'score': -1
+                }
+            }, {
+                //     '$limit': 100
+                // }, {
                 '$lookup': {
-                    'from': 'domains',
+                    'from': 'pages',
                     'localField': 'domain',
                     'foreignField': 'domain',
-                    'as': 'domainObject'
+                    'as': 'page'
+                }
+            }, {
+                '$unwind': {
+                    'path': '$page'
                 }
             }, {
                 '$project': {
-                    'url': '$url',
+                    'url': '$page.url',
                     'score': {
-                        '$add': ['$fetchInterest', { '$ifNull': ['$domainObject[0].score', 0] }]
+                        '$add': [
+                            '$page.fetchInterest', {
+                                '$ifNull': [
+                                    '$score', 0
+                                ]
+                            }
+                        ]
                     }
                 }
             }
@@ -264,7 +280,6 @@ class MongoManager {
         const res = await this.__PageModel.aggregate( query ).exec();
         return head( res );
     }
-
 
     async isFirstMatchDomain( domain ) {
         const res = await this.__PageModel.aggregate( [

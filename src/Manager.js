@@ -27,8 +27,6 @@ class Manager {
         this.mongoManager = new MongoManager( this.config, 'Manager' );
         await this.mongoManager.init();
 
-        this.__plugins = loadPlugins( managerPluginsFolderPath, [this], this.logDebug.bind( this ) );
-
         this.app = express();
         this.app.use( bodyParser.urlencoded( { 'extended': true } ) );
         this.app.use( bodyParser.json() );
@@ -36,6 +34,8 @@ class Manager {
         this.app.use( cors( { 'origin': '*' } ) );
 
         this.__initRemote();
+
+        this.__plugins = loadPlugins( managerPluginsFolderPath, [this], this.logDebug.bind( this ) );
 
         for ( let i = 0; i < this.config.nbCrawler; i++ ) {
             await this.__startCrawler( i + 1 );
@@ -88,7 +88,8 @@ class Manager {
         process.on( 'exit', async ( code ) => {
             this.log( `crawler ${id} exit` );
             await wait( this.config.crawlerProcessExitWait );
-            this.__startCrawler( id );
+            if ( this.config.loop )
+                this.__startCrawler( id );
         } );
 
         await this.__runPlugins( 'onStartCrawler', id, process );
