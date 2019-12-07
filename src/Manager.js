@@ -88,7 +88,8 @@ class Manager {
         process.on( 'exit', async ( code ) => {
             this.log( `crawler ${id} exit` );
             await wait( this.config.crawlerProcessExitWait );
-            this.__startCrawler( id );
+            if ( this.config.loop )
+                this.__startCrawler( id );
         } );
 
         await this.__runPlugins( 'onStartCrawler', id, process );
