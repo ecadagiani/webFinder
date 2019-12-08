@@ -247,11 +247,7 @@ class MongoManager {
                     'url': '$page.url',
                     'score': {
                         '$add': [
-                            '$page.fetchInterest', {
-                                '$ifNull': [
-                                    '$score', 0
-                                ]
-                            }
+                            '$page.fetchInterest', '$score'
                         ]
                     }
                 }
