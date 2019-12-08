@@ -247,7 +247,11 @@ class MongoManager {
                     'url': '$page.url',
                     'score': {
                         '$add': [
-                            '$page.fetchInterest', '$score'
+                            '$page.fetchInterest', {
+                                '$ifNull': [
+                                    '$score', 0
+                                ]
+                            }
                         ]
                     }
                 }
@@ -273,7 +277,7 @@ class MongoManager {
                 '$limit': 1
             }
         );
-        const res = await this.__PageModel.aggregate( query ).exec();
+        const res = await this.__DomainModel.aggregate( query ).exec();
         return head( res );
     }
 
