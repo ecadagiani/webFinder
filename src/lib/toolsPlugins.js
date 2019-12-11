@@ -9,7 +9,6 @@ function loadPlugins( pluginsFolderPath, constructorParams, logDebug ) {
             logDebug('load plugin', `${pluginsFolderPath}/${file}`);
             try {
                 const Plugin = require( `${pluginsFolderPath}/${file}` );
-                logDebug('plugin value: ', Plugin);
                 plugins.push(
                     new Plugin( ...constructorParams )
                 );

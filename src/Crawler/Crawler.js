@@ -59,7 +59,7 @@ class Crawler {
         this.mongoManager = new MongoManager( this.config, `Crawler ${this.id}` );
         await this.mongoManager.init();
         await this.__setStatus( Crawler.statusType.initialised );
-        this.__plugins = loadPlugins( crawlerPluginsFolderPath, [this], this.logDebug.bind(this) );
+        this.__plugins = loadPlugins( crawlerPluginsFolderPath, [this], this.logDebug.bind( this ) );
         await this.__runPlugins( 'onInit' );
     }
 
@@ -128,7 +128,9 @@ class Crawler {
         if ( get( this.config, 'start' ) ) {
             await this.__setStatus( Crawler.statusType.running );
             await this.__runPlugins( 'onStart' );
-            const startUrl = Array.isArray( this.config.start ) ? this.config.start[this.id - 1] : this.config.start;
+            this.logDebug( 'get start url' );
+            const startUrl = await this.__getStartUrl();
+            this.logDebug( 'start url getted:', startUrl );
             this.__loop( startUrl );
         } else
             this.error( 'no start link in config - you can add "start": "mylink.com" to config file' );
@@ -201,6 +203,18 @@ class Crawler {
         await this.__setStatus( Crawler.statusType.stopped );
     }
 
+    async __getStartUrl() {
+        const defaultUrl = Array.isArray( this.config.start ) ? this.config.start[this.id - 1] : this.config.start;
+        let url;
+        try {
+            const res = await this.mongoManager.getPage( defaultUrl );
+            if ( res ) url = await this.__tryToGetNewLink();
+            else url = defaultUrl;
+        } catch ( e ) {
+            return defaultUrl;
+        }
+        return url;
+    }
 
     async __setStatus( status ) {
         this.__status = status;
