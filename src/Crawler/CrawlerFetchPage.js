@@ -146,6 +146,10 @@ async function __tryToFetchPage( url, errorCount = 0 ) {
                 await this.initPage();
             } else if ( err.message.includes( 'Connection closed' ) ) {
                 await this.initPage();
+            } else if( errorCount === this.config.maxErrorFetchPage - 2 ) {
+                // last error we try to restart browser
+                await this.initBrowser();
+                await this.initPage();
             }
 
             return await this.__tryToFetchPage( url, errorCount + 1 );
