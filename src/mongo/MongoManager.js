@@ -81,8 +81,7 @@ class MongoManager {
                 }
             );
         } catch ( err ) {
-            console.log( err );
-            console.log( err.code );
+            this.log( 'error on create domain: ', err );
         }
         return domainToSave;
     }
@@ -230,7 +229,7 @@ class MongoManager {
                     'score': -1
                 }
             }, {
-                '$limit': Math.round(this.config.mongoSampleSize / 10)
+                '$limit': Math.round( this.config.mongoSampleSize / 10 )
             }, {
                 '$lookup': {
                     'from': 'pages',
