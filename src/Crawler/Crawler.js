@@ -209,8 +209,9 @@ class Crawler {
         try {
             const res = await this.mongoManager.getPage( defaultUrl );
             if ( res ) url = await this.__tryToGetNewLink();
-            else url = defaultUrl;
+            else url = defaultUrl; // todo get _id
         } catch ( e ) {
+            //todo insert on mongo, and get _id
             return defaultUrl;
         }
         return url;

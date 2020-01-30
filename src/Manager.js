@@ -107,12 +107,6 @@ class Manager {
                 this.crawlerProcess[index].process.kill();
                 this.logDebug( `crawler ${id} has been killed` );
             }
-            if ( this.crawlerProcess[index].url ) {
-                await this.mongoManager.createOrUpdatePage( {
-                    url: this.crawlerProcess[index].url,
-                    fetching: false
-                } );
-            }
         }
     }
 

@@ -110,7 +110,7 @@ async function _fetchPageData( url ) {
 
 async function __tryToFetchPage( url, errorCount = 0 ) {
     if ( this.status === crawlerStatusType.stopping ) {
-        await this.mongoManager.createOrUpdatePage( { url, fetched: false, fetching: false } );
+        await this.mongoManager.insertPage( { url, fetched: false, _id: }, {update: true} ); //todo page status
         await this.__stopNext();
         return;
     }
@@ -130,7 +130,7 @@ async function __tryToFetchPage( url, errorCount = 0 ) {
         }
 
         if ( Object.values( basicNavigationErrorCode ).some( errorCode => err.message.includes( errorCode ) ) ) {
-            await this.mongoManager.createOrUpdatePage( { url, fetched: true, fetching: false } );
+            await this.mongoManager.insertPage( { url, fetched: true, _id:  }, {update: true} ); //todo page status
             return [];
         }
 
@@ -156,9 +156,11 @@ async function __tryToFetchPage( url, errorCount = 0 ) {
         }
 
         this.logError( `error on fetch (${errorCount + 1}) - ${err.message}` );
-        await this.mongoManager.createOrUpdatePage( {
-            url, error: true, fetched: false, fetching: false, errorMessage: err.toString()
-        }, { addOneToDomain: true } ); // is mandatory to add one to domain, to avoid to crawl bugged domain indefinitely
+        await this.mongoManager.insertPage(
+            { url, fetched: false, error: true, errorMessage: err.toString(), _id: },
+            { update: true, addOneToDomain: true }
+        );  //todo page status
+        // is mandatory to add one to domain, to avoid to crawl bugged domain indefinitely
     }
     return fetchedPages || [];
 }
@@ -170,7 +172,6 @@ async function fetchPage( url ) {
 
     this.logTime( 'time to navigate' );
     await Promise.all( [
-        this.mongoManager.createOrUpdatePage( { url, fetching: true }, { saveDomain: true } ),
         this.page.waitForNavigation( {
             waitUntil: ['load', 'domcontentloaded'],
             timeout: this.config.waitForPageLoadTimeout
@@ -212,10 +213,11 @@ async function fetchPage( url ) {
                 matchTags: pageData.matchTags,
                 language: pageData.language,
                 fetched: true,
-                fetching: false,
-                fetchDate: Date.now()
+                fetchDate: Date.now(),
+                _id:
             },
             options: {
+                update: true,
                 addOneToDomain: true
             }
         },
@@ -230,7 +232,7 @@ async function fetchPage( url ) {
             }
         }) ),
     ];
-    await Promise.map( pages, ( { data, options } ) => this.mongoManager.createOrUpdatePage( data, options ) );
+    await Promise.map( pages, ( { data, options } ) => this.mongoManager.insertPage( data, options ) ); //todo page status
     this.logTimeEnd( 'time to save fetchData in mongo' );
     return pages.map( ( { data } ) => data );
 }
