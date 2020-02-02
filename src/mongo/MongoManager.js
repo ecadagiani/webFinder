@@ -127,7 +127,7 @@ class MongoManager {
             throw err;
         }
 
-        const page = new this.__PageModel({ url, domain, ...pageRest });
+        const page = new this.__PageModel({ ...pageRest, url, domain });
         const res = await page.save();
 
         if ( saveDomain )
