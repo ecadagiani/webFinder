@@ -108,9 +108,9 @@ async function _fetchPageData( url ) {
     } );
 }
 
-async function __tryToFetchPage( url, errorCount = 0 ) {
+async function __tryToFetchPage( page, errorCount = 0 ) {
     if ( this.status === crawlerStatusType.stopping ) {
-        await this.mongoManager.createOrUpdatePage( { url, fetched: false, fetching: false } );
+        await this.mongoManager.updatePage( { _id: page._id, fetched: false });
         await this.__stopNext();
         return;
     }
@@ -120,7 +120,7 @@ async function __tryToFetchPage( url, errorCount = 0 ) {
 
     let fetchedPages = [];
     try {
-        fetchedPages = await this.fetchPage( url );
+        fetchedPages = await this.fetchPage( page );
     } catch ( err ) {
         if ( this.config.throwError ) throw err;
 
@@ -130,7 +130,7 @@ async function __tryToFetchPage( url, errorCount = 0 ) {
         }
 
         if ( Object.values( basicNavigationErrorCode ).some( errorCode => err.message.includes( errorCode ) ) ) {
-            await this.mongoManager.createOrUpdatePage( { url, fetched: true, fetching: false } );
+            await this.mongoManager.insertPage( { _id: page._id, fetched: true } );
             return [];
         }
 
@@ -152,30 +152,31 @@ async function __tryToFetchPage( url, errorCount = 0 ) {
                 await this.initPage();
             }
 
-            return await this.__tryToFetchPage( url, errorCount + 1 );
+            return await this.__tryToFetchPage( page, errorCount + 1 );
         }
 
         this.logError( `error on fetch (${errorCount + 1}) - ${err.message}` );
-        await this.mongoManager.createOrUpdatePage( {
-            url, error: true, fetched: false, fetching: false, errorMessage: err.toString()
-        }, { addOneToDomain: true } ); // is mandatory to add one to domain, to avoid to crawl bugged domain indefinitely
+        await this.mongoManager.updatePage(
+            { _id: page._id, fetched: false, error: true, errorMessage: err.toString() },
+            { addOneToDomain: true }
+        );
+        // is mandatory to add one to domain, to avoid to crawl bugged domain indefinitely
     }
     return fetchedPages || [];
 }
 
 
-async function fetchPage( url ) {
+async function fetchPage( page ) {
     // access to the page and set page fetching
-    await this.__runPlugins( 'onFetchPage', url );
+    await this.__runPlugins( 'onFetchPage', page );
 
     this.logTime( 'time to navigate' );
     await Promise.all( [
-        this.mongoManager.createOrUpdatePage( { url, fetching: true }, { saveDomain: true } ),
         this.page.waitForNavigation( {
             waitUntil: ['load', 'domcontentloaded'],
             timeout: this.config.waitForPageLoadTimeout
         } ),
-        this.page.goto( url ),
+        this.page.goto( page.url ),
     ] );
 
     if ( this.config.waitForBodyAppear ) {
@@ -189,7 +190,7 @@ async function fetchPage( url ) {
 
     // fetch DOM data
     this.logTime( 'time to fetch page data' );
-    let pageData = await this._fetchPageData( url );
+    let pageData = await this._fetchPageData( page.url );
     this.logTimeEnd( 'time to fetch page data' );
 
     // calculate links score
@@ -200,39 +201,31 @@ async function fetchPage( url ) {
     }) );
     this.logTimeEnd( 'time to calculate links score' );
 
-    await this.__runPlugins( 'onPageIsFetched', { ...pageData, links, url } );
+    await this.__runPlugins( 'onPageIsFetched', { ...pageData, links, ...page } );
 
     // save all data
     this.logTime( 'time to save fetchData in mongo' );
-    const pages = [
-        {
-            data: {
-                url,
-                match: pageData.match,
-                matchTags: pageData.matchTags,
-                language: pageData.language,
-                fetched: true,
-                fetching: false,
-                fetchDate: Date.now()
-            },
-            options: {
-                addOneToDomain: true
-            }
-        },
-        ...links.map( link => ({
-            data: {
-                url: link.href,
-                domain: link.domain,
-                fetchInterest: link.interestScore,
-            },
-            options: {
-                saveDomain: true
-            }
-        }) ),
-    ];
-    await Promise.map( pages, ( { data, options } ) => this.mongoManager.createOrUpdatePage( data, options ) );
+    await this.mongoManager.updatePage({
+        ...pageData,
+        _id: page._id,
+        fetched: true,
+        fetchDate: Date.now(),
+    }, {
+        addOneToDomain: true
+    });
+
+    const discoveredPages = await Promise.map( links, ( link ) =>
+        this.mongoManager.insertPage( {
+            url: link.href,
+            domain: link.domain,
+            fetchInterest: link.interestScore,
+        }, {
+            saveDomain: true
+        })
+    );
+
     this.logTimeEnd( 'time to save fetchData in mongo' );
-    return pages.map( ( { data } ) => data );
+    return discoveredPages;
 }
 
 module.exports = {

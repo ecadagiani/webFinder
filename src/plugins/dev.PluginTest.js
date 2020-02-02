@@ -34,9 +34,9 @@ class PluginTest extends CrawlerPlugin {
 
     /**
      * Before a page was fetched
-     * @param {string} url - page url
+     * @param {Object} page - page page
      */
-    onFetchPage( url ) {
+    onFetchPage( page ) {
     }
 
     /**
@@ -55,6 +55,7 @@ class PluginTest extends CrawlerPlugin {
      * @param {Array<string>} pageData.matchTags - the matched tags
      * @param {string} pageData.language - the page language
      * @param {string} pageData.url - the page url
+     * @param {string} pageData._id - the page id
      * @param {Array<linkObject>} pageData.links - An object with the key {href, domain, texts, interestScore} for each link in fetched page
      */
     async onPageIsFetched( pageData ) {
@@ -72,9 +73,9 @@ class PluginTest extends CrawlerPlugin {
 
     /**
      * After recover the new link to fetch
-     * @param {string} newUrl - the new url fetched
+     * @param {Object} newPage - the new page fetched
      */
-    onNewLink( newUrl ) {
+    onNewLink( newPage ) {
     }
 }
 

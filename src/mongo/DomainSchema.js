@@ -4,11 +4,10 @@ const Schema = mongoose.Schema;
 
 const DomainSchema = new Schema( {
     _id: String,
-    domain: { type: String, unique: true, required: true, dropDups: true },
+    domain: { type: String, required: true, index: true },
     score: { type: Number, default: 0, index: true },
     nbFetch: { type: Number, default: 0, index: true },
 }, {
-    _id: false,
     autoIndex: false,
     strict: true,
     minimize: true,
