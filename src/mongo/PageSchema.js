@@ -3,10 +3,9 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 const PageSchema = new Schema({
-    url: {type: String, unique: true, required: true, dropDups: true},
+    url: {type: String, required: true, index: true},
     domain: {type: String, ref: 'Domain', index: true},
     fetched: { type: Boolean, default: false, index: true },
-    fetching: { type: Boolean, default: false, index: true },
     fetchDate: Date,
     fetchInterest: { type: Number, default: 0, index: true },
 
