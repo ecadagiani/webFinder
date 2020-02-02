@@ -130,7 +130,7 @@ async function __tryToFetchPage( page, errorCount = 0 ) {
         }
 
         if ( Object.values( basicNavigationErrorCode ).some( errorCode => err.message.includes( errorCode ) ) ) {
-            await this.mongoManager.insertPage( { _id: page._id, fetched: true } );
+            await this.mongoManager.updatePage( { _id: page._id, fetched: true } );
             return [];
         }
 
