@@ -1,5 +1,5 @@
 # webFinder
-WebFinder is a highly configurable crawler on puppeteer, run in docker, 
+WebFinder is a highly configurable crawler on puppeteer, run in docker,
 to match specific page on the web.
 
 [DockerHub - webFinder](https://hub.docker.com/repository/docker/ecadagiani/webfinder)
@@ -154,7 +154,7 @@ You can add plugins, just add them in `/app/src/plugins/` folder in the containe
 Your plugins files should start with 'Plugin' (ex: 'PluginTest.js').
 You can add other file in plugins folder and import them into your plugin, they will not be used.
 
-There is a template for your plugin: 
+There is a template for your plugin:
 ```javascript
 const WebFinderPlugin = require('../lib/WebFinderPlugin');
 
@@ -248,13 +248,13 @@ module.exports = PluginTest;
 
 >  - Every Crawler will have an instance of your plugins.
 >
->  - You can use [lodash](https://lodash.com/docs), 
-[bluebird](http://bluebirdjs.com/), 
+>  - You can use [lodash](https://lodash.com/docs),
+[bluebird](http://bluebirdjs.com/),
 or [axios](https://github.com/axios/axios) in your plugin
 >
 > - Every method can be **async**
 >
-> - You can also use `this.log(..texts)`, 
+> - You can also use `this.log(..texts)`,
 it's a specific log who print dateTime and crawler ID
 
 
@@ -274,4 +274,4 @@ the container has not been down before
 - **Eden Cadagiani** ([HelloMyBot](https://hellomybot.io/fr/bienvenue/))
 
 ## License
-This project is licensed under the Apache 2.0 - see the [LICENSE](LICENSE) file for details
+This project is licensed under the MIT - see the [LICENSE](LICENSE) file for details
