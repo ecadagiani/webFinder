@@ -1,5 +1,5 @@
 const mongoose        = require( 'mongoose' );
-const { head }        = require( 'lodash' );
+const { head, get }        = require( 'lodash' );
 const createSemaphore = require( 'semaphore' );
 const { wait }        = require( '@ecadagiani/jstools' );
 const PageSchema      = require( './PageSchema' );
@@ -102,23 +102,22 @@ class MongoManager {
     }
 
     async getDomain( domain ) {
-        return this.__DomainModel.findById( domain );
+        return this.__DomainModel.findOne( {domain} ).lean();
     }
 
+    /**
+     *
+     * @param page {Object}
+     * @param options {Object}
+     * @param options.saveDomain
+     * @param options.addOneToDomain
+     * @return {Promise<void>}
+     */
     async insertPage( {
         url,
         domain = getDomain( url ), // domain used to create, or updated domain if saveDomain option is to true
-        fetchDate = null,
-        fetched = null,
-        fetchInterest = null,
-        match = null,
-        matchTags = null,
-        language = null,
-        error = null,
-        errorMessage = null,
-        _id = null,
+        ...pageRest
     }, { // - OPTIONS
-        update = false,
         saveDomain = false, // if saveDomain is true, is use domain or the url to create an domain or updated if exist
         addOneToDomain = false, // if saveDomain is true, is use domain or the url to create an domain or updated if exist
     } = {} ) {
@@ -128,47 +127,60 @@ class MongoManager {
             throw err;
         }
 
-        const page = { url, domain };
-        if ( fetchDate !== null ) page.fetchDate = fetchDate;
-        if ( fetched !== null ) page.fetched = fetched;
-        if ( match !== null ) page.match = match;
-        if ( matchTags !== null ) page.matchTags = matchTags;
-        if ( fetchInterest !== null ) page.fetchInterest = fetchInterest;
-        if ( language !== null ) page.language = language;
-        if ( error !== null ) page.error = error;
-        if ( errorMessage !== null ) page.errorMessage = errorMessage;
-
-        if(!updateIfExist) {
-            await this.__PageModel.insertMany(
-                page, { setDefaultsOnInsert: true },
-            );
-        }else if(_id) {
-            await this.__PageModel.findOneAndUpdate(
-                {_id},
-                page,
-                { setDefaultsOnInsert: true },
-            );
-        }
-
+        const page = new this.__PageModel({ url, domain, ...pageRest });
+        const res = await page.save();
 
         if ( saveDomain )
             await this.createOrUpdateDomain( { domain } );
 
         if ( addOneToDomain )
             await this._addToNbFetchToDomain( domain );
+
+        return res;
+    }
+    /**
+     *
+     * @param page {Object}
+     * @param options {Object}
+     * @param options.saveDomain
+     * @param options.addOneToDomain
+     * @return {Promise<void>}
+     */
+    async updatePage( {
+        _id,
+        ...pageRest
+    }, { // - OPTIONS
+        saveDomain = false, // if saveDomain is true, is use domain or the url to create an domain or updated if exist
+        addOneToDomain = false, // if saveDomain is true, is use domain or the url to create an domain or updated if exist
+    } = {} ) {
+
+        const page = { _id,  ...pageRest };
+        const savedPage = await this.__PageModel.findOneAndUpdate(
+            {_id},
+            page,
+            {
+                new: true,
+            },
+        );
+
+        if ( get(savedPage, 'domain') && saveDomain )
+            await this.createOrUpdateDomain( { domain: get(savedPage, 'domain') } );
+
+        if ( get(savedPage, 'domain') && addOneToDomain )
+            await this._addToNbFetchToDomain( get(savedPage, 'domain') );
     }
 
     async getPage( url ) {
         return this.__PageModel.findOne( { url } );
     }
 
-    async getNewLinkFromPreviousPage( urls, minScore ) {
+    async getNewLinkFromPreviousPage( pages, minScore ) {
         const query = [
             {
                 '$match': {
                     'fetched': false,
                     'error': false,
-                    'url': { '$in': urls },
+                    '_id': { '$in': pages.map(({_id}) => _id) },
                 },
             }, {
                 '$lookup': {

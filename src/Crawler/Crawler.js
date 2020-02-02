@@ -13,7 +13,7 @@ const { initConfig } = require( '../lib/initConfig' );
 
 const { error, logError, logDebug, log, logTime, logTimeEnd } = require( './CrawlerLog' );
 const { __tryToFetchPage, _fetchPageData, fetchPage } = require( './CrawlerFetchPage' );
-const { __getRandomSearchEngineLink, __tryToGetNewLink, __getNewLink } = require( './CrawlerGetNewLink' );
+const { __getRandomSearchEngineUrl, __tryToGetNewPage, __getNewPage } = require( './CrawlerGetNewLink' );
 
 
 class Crawler {
@@ -36,9 +36,9 @@ class Crawler {
         this.__tryToFetchPage = __tryToFetchPage.bind( this );
         this.fetchPage = fetchPage.bind( this );
         this._fetchPageData = _fetchPageData.bind( this );
-        this.__getRandomSearchEngineLink = __getRandomSearchEngineLink.bind( this );
-        this.__getNewLink = __getNewLink.bind( this );
-        this.__tryToGetNewLink = __tryToGetNewLink.bind( this );
+        this.__getRandomSearchEngineUrl = __getRandomSearchEngineUrl.bind( this );
+        this.__getNewPage = __getNewPage.bind( this );
+        this.__tryToGetNewPage = __tryToGetNewPage.bind( this );
 
         this.logDebug( 'debug mode' );
         if ( !this.config.loop )
@@ -129,9 +129,9 @@ class Crawler {
             await this.__setStatus( Crawler.statusType.running );
             await this.__runPlugins( 'onStart' );
             this.logDebug( 'get start url' );
-            const startUrl = await this.__getStartUrl();
-            this.logDebug( 'start url getted:', startUrl );
-            this.__loop( startUrl );
+            const startPage = await this.__getStartPage();
+            this.logDebug( 'start page getted:', startPage );
+            this.__loop( startPage );
         } else
             this.error( 'no start link in config - you can add "start": "mylink.com" to config file' );
     }
@@ -139,8 +139,8 @@ class Crawler {
 
     /** ******* PRIVATE FUNCTION *********/
 
-    async __loop( url ) {
-        let _url = url;
+    async __loop( page ) {
+        let _page = page;
         try {
             let isFirstLoop = false;
             while (
@@ -150,10 +150,10 @@ class Crawler {
             ) {
                 isFirstLoop = true;
                 // SECURITY check url
-                if ( !_url ) throw this.error( 'url is not valid', _url );
+                if ( !_page ) throw this.error( 'page is not valid', _page );
 
                 // CRAWL PAGE
-                _url = await this.__crawlPage( _url );
+                _page = await this.__crawlPage( _page );
             }
             this.__stopNext();
 
@@ -164,27 +164,28 @@ class Crawler {
     }
 
 
-    async __crawlPage( url ) {
+    async __crawlPage( page ) {
         // eslint-disable-next-line no-async-promise-executor
-        await this.__setUrl( url );
-        const loopStart = performance.now();
-        this.logTime( 'time to complete loop' );
-
-        if ( !url ) {
+        if ( !page ) {
             this.logError( 'The crawler failed to find a valid url' );
             throw this.error( 'The crawler failed to find a valid url' );
         }
 
+        await this.__setUrl( page.url );
+        const loopStart = performance.now();
+        this.logTime( 'time to complete loop' );
+
+
         // fetch page
         this.logTime( 'time to complete fetchPage' );
-        const fetchedPages = await this.__tryToFetchPage( url );
+        const fetchedPages = await this.__tryToFetchPage( page );
         this.logTimeEnd( 'time to complete fetchPage' );
 
         // get new link
-        this.logTime( 'time to complete getNewLink' );
-        const newUrl = await this.__tryToGetNewLink( fetchedPages );
-        await this.__runPlugins( 'onNewLink', newUrl );
-        this.logTimeEnd( 'time to complete getNewLink' );
+        this.logTime( 'time to complete getNewPage' );
+        const newPage = await this.__tryToGetNewPage( fetchedPages );
+        await this.__runPlugins( 'onNewLink', newPage );
+        this.logTimeEnd( 'time to complete getNewPage' );
 
         // minimum wait
         this.logTimeEnd( 'time to complete loop' );
@@ -192,7 +193,7 @@ class Crawler {
         if ( timeToFetch < this.config.timeBetweenTwoFetch )
             await wait( this.config.timeBetweenTwoFetch - timeToFetch );
 
-        return newUrl;
+        return newPage;
     }
 
 
@@ -203,18 +204,16 @@ class Crawler {
         await this.__setStatus( Crawler.statusType.stopped );
     }
 
-    async __getStartUrl() {
+    async __getStartPage() {
         const defaultUrl = Array.isArray( this.config.start ) ? this.config.start[this.id - 1] : this.config.start;
-        let url;
-        try {
-            const res = await this.mongoManager.getPage( defaultUrl );
-            if ( res ) url = await this.__tryToGetNewLink();
-            else url = defaultUrl; // todo get _id
-        } catch ( e ) {
-            //todo insert on mongo, and get _id
-            return defaultUrl;
+        let page;
+        const res = await this.mongoManager.getPage( defaultUrl );
+        if ( res ) {
+            page = await this.__tryToGetNewPage();
+        } else {
+            page = await this.mongoManager.insertPage( {url: defaultUrl}, {saveDomain: true} );
         }
-        return url;
+        return page;
     }
 
     async __setStatus( status ) {
