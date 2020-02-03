@@ -255,6 +255,7 @@ class MongoManager {
                 },
             }, {
                 '$project': {
+                    '_id': '$page._id',
                     'url': '$page.url',
                     'score': {
                         '$add': [

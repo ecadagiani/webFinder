@@ -175,7 +175,6 @@ class Crawler {
         const loopStart = performance.now();
         this.logTime( 'time to complete loop' );
 
-
         // fetch page
         this.logTime( 'time to complete fetchPage' );
         const fetchedPages = await this.__tryToFetchPage( page );
@@ -209,7 +208,7 @@ class Crawler {
         let page;
         const res = await this.mongoManager.getPage( defaultUrl );
         if ( res ) {
-            page = await this.__tryToGetNewPage();
+            page = await this.mongoManager.getNewLinkFromMongoPage();
         } else {
             page = await this.mongoManager.insertPage( {url: defaultUrl}, {saveDomain: true} );
         }
