@@ -1,5 +1,5 @@
 {
-    "debug": false,
+    "debug": true,
     "throwError": false,
     "loop": true,
     "nbCrawler": 3,
