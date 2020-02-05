@@ -1,9 +1,9 @@
 const { chain, get, uniq, head } = require( 'lodash' );
-const { wait, getUrlParts } = require( '@ecadagiani/jstools' );
+const { wait, getUrlParts }      = require( '@ecadagiani/jstools' );
 
 const { basicNavigationErrorCode, searchEngineDomain, crawlerStatusType } = require( '../constants/crawlerconstants' );
-const { calculInterestScore } = require( './calculInterest' );
-const { getDomain } = require( '../lib/tools' );
+const { calculInterestScore }                                             = require( './calculInterest' );
+const { getDomain }                                                       = require( '../lib/tools' );
 
 async function fetchLinks( page, { domainWhitelist, crawlInvisibleLink, authorizedLinksExtensions, maxUrlLength, authorizedURIScheme } ) {
     let links = await page.evaluate( () => {// get href and texts
@@ -11,9 +11,9 @@ async function fetchLinks( page, { domainWhitelist, crawlInvisibleLink, authoriz
         return Array.from( anchors )
             .filter( anchor => !!anchor.href )
             .map( anchor => ({
-                href: anchor.href,
-                texts: [anchor.textContent],
-                invisible: (anchor.offsetParent === null)
+                href:      anchor.href,
+                texts:     [anchor.textContent],
+                invisible: (anchor.offsetParent === null),
             }) );
     } );
 
@@ -38,14 +38,14 @@ async function fetchLinks( page, { domainWhitelist, crawlInvisibleLink, authoriz
         .groupBy( 'href' )
         .mapValues( ( values, key ) => {
             return {
-                href: key,
+                href:   key,
                 domain: values[0].hostname,
-                texts: chain( values )
+                texts:  chain( values )
                     .map( x => x.texts )
                     .flattenDeep()
                     .filter( x => x.trim() !== '' )
                     .uniq()
-                    .value()
+                    .value(),
             };
         } )
         .values()
@@ -58,8 +58,8 @@ async function checkSearchSelectors( page, { searchSelectors } ) {
     const result = await page.evaluate( ( selectors = [] ) => {
         const matchedSelectors = selectors.filter( ( { selector } ) => !!document.querySelector( selector ) );
         return {
-            match: matchedSelectors.length > 0,
-            matchTags: matchedSelectors.map( ( { tag } ) => tag )
+            match:     matchedSelectors.length > 0,
+            matchTags: matchedSelectors.map( ( { tag } ) => tag ),
         };
     }, searchSelectors );
     return result;
@@ -80,22 +80,22 @@ async function _fetchPageData( url ) {
     const getMatch = async () => {
         const [
             { match: matchSelectors, matchTags: matchTagsSelectors },
-            pluginMatchs
+            pluginMatchs,
         ] = await Promise.all( [
             checkSearchSelectors( this.page, this.config ),
-            this.__runPlugins( 'match', this.page, this.config, url )
+            this.__runPlugins( 'match', this.page, this.config, url ),
         ] );
 
-        const match = matchSelectors || !!(pluginMatchs || []).find( x => get( x, 'match', false ) );
+        const match            = matchSelectors || !!(pluginMatchs || []).find( x => get( x, 'match', false ) );
         const matchTagsPlugins = chain( pluginMatchs || [] )
             .filter( x => get( x, 'match', false ) )
             .map( ( { matchTags } ) => matchTags )
             .flatten()
             .value();
-        const matchTags = uniq( [...matchTagsSelectors, ...matchTagsPlugins] );
+        const matchTags        = uniq( [...matchTagsSelectors, ...matchTagsPlugins] );
 
         return {
-            match, matchTags
+            match, matchTags,
         };
     };
 
@@ -104,13 +104,13 @@ async function _fetchPageData( url ) {
         // matchTags,
         ...await getMatch(),
         language: await getPageLanguage( this.page, url, this.config ),
-        links: await fetchLinks( this.page, this.config ),
+        links:    await fetchLinks( this.page, this.config ),
     } );
 }
 
 async function __tryToFetchPage( page, errorCount = 0 ) {
     if ( this.status === crawlerStatusType.stopping ) {
-        await this.mongoManager.updatePage( { _id: page._id, fetched: false });
+        await this.mongoManager.updatePage( { url: page.url }, { fetched: false } );
         await this.__stopNext();
         return;
     }
@@ -130,7 +130,7 @@ async function __tryToFetchPage( page, errorCount = 0 ) {
         }
 
         if ( Object.values( basicNavigationErrorCode ).some( errorCode => err.message.includes( errorCode ) ) ) {
-            await this.mongoManager.updatePage( { _id: page._id, fetched: true } );
+            await this.mongoManager.updatePage( { url: page.url }, { fetched: true } );
             return [];
         }
 
@@ -146,7 +146,7 @@ async function __tryToFetchPage( page, errorCount = 0 ) {
                 await this.initPage();
             } else if ( err.message.includes( 'Connection closed' ) ) {
                 await this.initPage();
-            } else if( errorCount === this.config.maxErrorFetchPage - 2 ) {
+            } else if ( errorCount === this.config.maxErrorFetchPage - 2 ) {
                 // last error we try to restart browser
                 await this.initBrowser();
                 await this.initPage();
@@ -157,8 +157,9 @@ async function __tryToFetchPage( page, errorCount = 0 ) {
 
         this.logError( `error on fetch (${errorCount + 1}) - ${err.message}` );
         await this.mongoManager.updatePage(
-            { _id: page._id, fetched: false, error: true, errorMessage: err.toString() },
-            { addOneToDomain: true }
+            { url: page.url },
+            { fetched: false, error: true, errorMessage: err.toString() },
+            { addOneToDomain: true },
         );
         // is mandatory to add one to domain, to avoid to crawl bugged domain indefinitely
     }
@@ -174,7 +175,7 @@ async function fetchPage( page ) {
     await Promise.all( [
         this.page.waitForNavigation( {
             waitUntil: ['load', 'domcontentloaded'],
-            timeout: this.config.waitForPageLoadTimeout
+            timeout:   this.config.waitForPageLoadTimeout,
         } ),
         this.page.goto( page.url ),
     ] );
@@ -205,23 +206,26 @@ async function fetchPage( page ) {
 
     // save all data
     this.logTime( 'time to save fetchData in mongo' );
-    await this.mongoManager.updatePage({
-        ...pageData,
-        _id: page._id,
-        fetched: true,
-        fetchDate: Date.now(),
-    }, {
-        addOneToDomain: true
-    });
+    await this.mongoManager.updatePage(
+        { url: page.url },
+        {
+            ...pageData,
+            fetched:   true,
+            fetchDate: Date.now(),
+        },
+        {
+            addOneToDomain: true,
+        },
+    );
 
     const discoveredPages = await Promise.map( links, ( link ) =>
         this.mongoManager.insertPage( {
-            url: link.href,
-            domain: link.domain,
+            url:           link.href,
+            domain:        link.domain,
             fetchInterest: link.interestScore,
         }, {
-            saveDomain: true
-        })
+            saveDomain: true,
+        } ),
     );
 
     this.logTimeEnd( 'time to save fetchData in mongo' );
@@ -229,5 +233,5 @@ async function fetchPage( page ) {
 }
 
 module.exports = {
-    __tryToFetchPage, fetchPage, _fetchPageData
+    __tryToFetchPage, fetchPage, _fetchPageData,
 };

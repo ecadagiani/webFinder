@@ -1,13 +1,13 @@
-const mongoose        = require( 'mongoose' );
-const { head, get }        = require( 'lodash' );
-const createSemaphore = require( 'semaphore' );
-const { wait }        = require( '@ecadagiani/jstools' );
-const PageSchema      = require( './PageSchema' );
-const DomainSchema    = require( './DomainSchema' );
-const { getDomain }   = require( '../lib/tools' );
+const mongoose        = require( "mongoose" );
+const { head, get }   = require( "lodash" );
+const createSemaphore = require( "semaphore" );
+const { wait }        = require( "@ecadagiani/jstools" );
+const PageSchema      = require( "./PageSchema" );
+const DomainSchema    = require( "./DomainSchema" );
+const { getDomain }   = require( "../lib/tools" );
 
-mongoose.set( 'useUnifiedTopology', true );
-mongoose.set( 'useFindAndModify', false );
+mongoose.set( "useUnifiedTopology", true );
+mongoose.set( "useFindAndModify", false );
 
 const domainUpdateScoreSemaphore = createSemaphore( 1 );
 
@@ -21,11 +21,11 @@ class MongoManager {
     }
 
     async init() {
-        this.log( 'initialising' );
+        this.log( "initialising" );
         await this.connect();
-        this.__PageModel   = this.__connection.model( 'Page', PageSchema );
-        this.__DomainModel = this.__connection.model( 'Domain', DomainSchema );
-        this.log( 'initialised' );
+        this.__PageModel   = this.__connection.model( "Page", PageSchema );
+        this.__DomainModel = this.__connection.model( "Domain", DomainSchema );
+        this.log( "initialised" );
     }
 
     async connect() {
@@ -56,9 +56,9 @@ class MongoManager {
         try {
             await this.__connection.close();
             await wait( 100 );
-            this.log( 'Connection closed' );
+            this.log( "Connection closed" );
         } catch ( err ) {
-            this.log( 'An error occured in close:', err );
+            this.log( "An error occured in close:", err );
         }
     }
 
@@ -74,11 +74,11 @@ class MongoManager {
                 domainToSave,
                 {
                     setDefaultsOnInsert: true,
-                    upsert: true,
+                    upsert:              true,
                 },
             );
         } catch ( err ) {
-            this.log( 'error on create domain: ', err );
+            this.log( "error on create domain: ", err );
         }
         return domainToSave;
     }
@@ -89,12 +89,12 @@ class MongoManager {
             await this.__DomainModel.findOneAndUpdate(
                 { domain },
                 {
-                    $inc: { 'nbFetch': nbFetch },
+                    $inc:  { "nbFetch": nbFetch },
                     score: this.config.domainScoreFunction( domain, mongoDomain.nbFetch + nbFetch ),
                 },
                 {
                     setDefaultsOnInsert: true,
-                    upsert: true,
+                    upsert:              true,
                 },
             );
             domainUpdateScoreSemaphore.leave();
@@ -102,7 +102,7 @@ class MongoManager {
     }
 
     async getDomain( domain ) {
-        return this.__DomainModel.findOne( {domain} ).lean();
+        return this.__DomainModel.findOne( { domain } ).lean();
     }
 
     /**
@@ -114,21 +114,21 @@ class MongoManager {
      * @return {Promise<void>}
      */
     async insertPage( {
-        url,
-        domain = getDomain( url ), // domain used to create, or updated domain if saveDomain option is to true
-        ...pageRest
-    }, { // - OPTIONS
-        saveDomain = false, // if saveDomain is true, is use domain or the url to create an domain or updated if exist
-        addOneToDomain = false, // if saveDomain is true, is use domain or the url to create an domain or updated if exist
-    } = {} ) {
+                          url,
+                          domain = getDomain( url ), // domain used to create, or updated domain if saveDomain option is to true
+                          ...pageRest
+                      }, { // - OPTIONS
+                          saveDomain = false, // if saveDomain is true, is use domain or the url to create an domain or updated if exist
+                          addOneToDomain = false, // if saveDomain is true, is use domain or the url to create an domain or updated if exist
+                      } = {} ) {
         if ( !domain ) {
             const err = new Error( `Domain recovery failed on url ${url}` );
             err.code  = 6001;
             throw err;
         }
 
-        const page = new this.__PageModel({ ...pageRest, url, domain });
-        const res = await page.save();
+        const page = new this.__PageModel( { ...pageRest, url, domain } );
+        const res  = await page.save();
 
         if ( saveDomain )
             await this.createOrUpdateDomain( { domain } );
@@ -138,6 +138,7 @@ class MongoManager {
 
         return res;
     }
+
     /**
      *
      * @param page {Object}
@@ -146,28 +147,31 @@ class MongoManager {
      * @param options.addOneToDomain
      * @return {Promise<void>}
      */
-    async updatePage( {
-        _id,
-        ...pageRest
-    }, { // - OPTIONS
-        saveDomain = false, // if saveDomain is true, is use domain or the url to create an domain or updated if exist
-        addOneToDomain = false, // if saveDomain is true, is use domain or the url to create an domain or updated if exist
-    } = {} ) {
+    async updatePage(
+        { _id, url },
+        page,
+        { // - OPTIONS
+            saveDomain = false, // if saveDomain is true, is use domain or the url to create an domain or updated if exist
+            addOneToDomain = false, // if saveDomain is true, is use domain or the url to create an domain or updated if exist
+        } = {},
+    ) {
 
-        const page = { _id,  ...pageRest };
         const savedPage = await this.__PageModel.findOneAndUpdate(
-            {_id},
+            {
+                ...(_id && { _id }),
+                ...(url && { url }),
+            },
             page,
             {
                 new: true,
             },
         );
 
-        if ( get(savedPage, 'domain') && saveDomain )
-            await this.createOrUpdateDomain( { domain: get(savedPage, 'domain') } );
+        if ( get( savedPage, "domain" ) && saveDomain )
+            await this.createOrUpdateDomain( { domain: get( savedPage, "domain" ) } );
 
-        if ( get(savedPage, 'domain') && addOneToDomain )
-            await this._addToNbFetchToDomain( get(savedPage, 'domain') );
+        if ( get( savedPage, "domain" ) && addOneToDomain )
+            await this._addToNbFetchToDomain( get( savedPage, "domain" ) );
     }
 
     async getPage( url ) {
@@ -177,36 +181,36 @@ class MongoManager {
     async getNewLinkFromPreviousPage( pages, minScore ) {
         const query = [
             {
-                '$match': {
-                    'fetched': false,
-                    'error': false,
-                    '_id': { '$in': pages.map(({_id}) => _id) },
+                "$match": {
+                    "fetched": false,
+                    "error":   false,
+                    "_id":     { "$in": pages.map( ( { _id } ) => _id ) },
                 },
             }, {
-                '$lookup': {
-                    'from': 'domains',
-                    'localField': 'domain',
-                    'foreignField': 'domain',
-                    'as': 'domainObject',
+                "$lookup": {
+                    "from":         "domains",
+                    "localField":   "domain",
+                    "foreignField": "domain",
+                    "as":           "domainObject",
                 },
             }, {
-                '$project': {
-                    'url': '$url',
-                    'fetchInterest': '$fetchInterest',
-                    'domain': {
-                        '$arrayElemAt': [
-                            '$domainObject', 0,
+                "$project": {
+                    "url":           "$url",
+                    "fetchInterest": "$fetchInterest",
+                    "domain":        {
+                        "$arrayElemAt": [
+                            "$domainObject", 0,
                         ],
                     },
                 },
             }, {
-                '$project': {
-                    'url': '$url',
-                    'score': {
-                        '$add': [
-                            '$fetchInterest', {
-                                '$ifNull': [
-                                    '$domain.score', 0,
+                "$project": {
+                    "url":   "$url",
+                    "score": {
+                        "$add": [
+                            "$fetchInterest", {
+                                "$ifNull": [
+                                    "$domain.score", 0,
                                 ],
                             },
                         ],
@@ -214,16 +218,16 @@ class MongoManager {
                 },
             },
             {
-                '$match': {
-                    'score': { '$gte': minScore },
+                "$match": {
+                    "score": { "$gte": minScore },
                 },
             },
             {
-                '$sort': {
-                    'score': -1,
+                "$sort": {
+                    "score": -1,
                 },
             }, {
-                '$limit': 1,
+                "$limit": 1,
             },
         ];
         const res   = await this.__PageModel.aggregate( query ).exec();
@@ -233,35 +237,35 @@ class MongoManager {
     async getNewLinkFromMongoPage( minScore = null ) {
         const query = [
             {
-                '$sample': {
-                    'size': this.config.mongoSampleSize,
+                "$sample": {
+                    "size": this.config.mongoSampleSize,
                 },
             }, {
-                '$sort': {
-                    'score': -1,
+                "$sort": {
+                    "score": -1,
                 },
             }, {
-                '$limit': Math.round( this.config.mongoSampleSize / 10 ),
+                "$limit": Math.round( this.config.mongoSampleSize / 10 ),
             }, {
-                '$lookup': {
-                    'from': 'pages',
-                    'localField': 'domain',
-                    'foreignField': 'domain',
-                    'as': 'page',
+                "$lookup": {
+                    "from":         "pages",
+                    "localField":   "domain",
+                    "foreignField": "domain",
+                    "as":           "page",
                 },
             }, {
-                '$unwind': {
-                    'path': '$page',
+                "$unwind": {
+                    "path": "$page",
                 },
             }, {
-                '$project': {
-                    '_id': '$page._id',
-                    'url': '$page.url',
-                    'score': {
-                        '$add': [
-                            '$page.fetchInterest', {
-                                '$ifNull': [
-                                    '$score', 0,
+                "$project": {
+                    "_id":   "$page._id",
+                    "url":   "$page.url",
+                    "score": {
+                        "$add": [
+                            "$page.fetchInterest", {
+                                "$ifNull": [
+                                    "$score", 0,
                                 ],
                             },
                         ],
@@ -270,11 +274,11 @@ class MongoManager {
             },
         ];
 
-        if ( typeof minScore === 'number' ) {
+        if ( typeof minScore === "number" ) {
             query.push( {
-                '$match': {
-                    'score': {
-                        '$gt': minScore,
+                "$match": {
+                    "score": {
+                        "$gt": minScore,
                     },
                 },
             } );
@@ -282,11 +286,11 @@ class MongoManager {
 
         query.push(
             {
-                '$sort': {
-                    'score': -1,
+                "$sort": {
+                    "score": -1,
                 },
             }, {
-                '$limit': 1,
+                "$limit": 1,
             },
         );
         const res = await this.__DomainModel.aggregate( query ).exec();
@@ -296,9 +300,9 @@ class MongoManager {
     async isFirstMatchDomain( domain ) {
         const res = await this.__PageModel.aggregate( [
             {
-                '$match': {
-                    'match': true,
-                    'domain': domain,
+                "$match": {
+                    "match":  true,
+                    "domain": domain,
                 },
             },
         ] ).exec();
